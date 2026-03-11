@@ -1,0 +1,42 @@
+schema: spec-driven
+
+context: |
+  Use default OpenSpec spec-driven flow (proposal -> design -> specs -> tasks -> apply -> archive).
+  Keep artifacts concise and implementation-ready.
+  Preserve default OpenSpec artifact lifecycle and dependency ordering.
+  All file and folder references must be project-root-relative paths (for example, openspec/changes/my-change/proposal.md).
+
+rules:
+  proposal:
+    - "Iterate on proposal quality before finalizing; explicitly call out gaps, assumptions, constraints, and edge cases."
+    - 'If unresolved ambiguity exists, include an "Open Questions" section with concrete questions for the requester.'
+    - "Fully define problem space boundaries: in-scope, out-of-scope, impacted capabilities, and risks."
+    - 'Required sections: "Why", "Problem Space", "Scope", "Risks", "Open Questions", "Non-Goals".'
+    - "Include explicit change-control note: if scope changes after approval, proposal/design/specs/tasks must be updated before apply."
+    - "Proposal must be reviewed and explicitly approved by a human before design, specs, tasks, or apply proceed."
+
+  design:
+    - "Every major proposal element must map to a corresponding design decision."
+    - "Document functional and non-functional requirements and ensure they map to acceptance criteria in specs."
+    - "For each requirement, include testability notes and expected validation approach."
+    - 'Required sections: "Context", "Goals / Non-Goals", "Decisions", "Risks / Trade-offs", "Rollback / Mitigation", "Open Questions".'
+    - "Include explicit mapping table or bullet mapping from proposal elements to design decisions."
+    - "Include operational blocking policy: what to do if CI/review/security checks remain blocked."
+
+  specs:
+    - "Acceptance criteria must be expressed as behavior scenarios (Given/When/Then or equivalent WHEN/THEN format)."
+    - "Ensure each scenario is measurable and unambiguous."
+    - "Include non-functional acceptance criteria when performance, security, reliability, or operability are affected."
+    - 'Required sections per capability: "ADDED/MODIFIED/REMOVED Requirements" with at least one scenario each.'
+    - "Include explicit traceability from requirements to acceptance scenarios."
+
+  tasks:
+    - "When initializing a change manually (without the openspec-propose skill), run npm run opsx:init-change -- <change-name> [capability-name] from project root. When using the propose skill, initialization is handled automatically."
+    - "Keep default implementation ordering from schema dependencies; do not reorder artifacts outside default flow."
+    - "Include an execution checklist covering: feature branch creation, sub-task implementation, duplication/complexity review, tests, build verification, PR creation, review/CI resolution, auto-merge enablement, and branch cleanup."
+    - "Include completion checklist items for: docs updates, archive step, and syncing approved spec deltas back to openspec/specs before or during archive workflow."
+    - "Prefer small, testable tasks with explicit verification commands."
+    - 'Required sections: "Execution", "Validation", "PR and Merge", "Post-Merge".'
+    - "Include ownership metadata where available: implementer, reviewer, and approval expectation."
+    - "Define blocking criteria and resolution flow for CI failures, unresolved review comments, and security findings."
+    - "All file/folder references in tasks content must be relative to project root; never use absolute paths."
