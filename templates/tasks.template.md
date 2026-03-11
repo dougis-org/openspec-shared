@@ -1,9 +1,15 @@
+# Tasks
+
 ## Execution
 
+- [ ] Check out the default branch: `<default-branch>`
+- [ ] Pull the latest remote changes with fast-forward only
 - [ ] Create feature branch: `<feature-branch-name>`
 - [ ] Implement sub-tasks in small, testable increments
 - [ ] Review for duplication and unnecessary complexity
 - [ ] Confirm acceptance criteria are covered
+
+Suggested start-of-work commands: `git checkout <default-branch>` and `git pull --ff-only`
 
 ## Validation
 
@@ -44,8 +50,10 @@ Blocking resolution flow:
 
 ## Post-Merge
 
-- [ ] Prune local feature branch
 - [ ] Update repository documentation impacted by the change
 - [ ] Sync approved spec deltas into `openspec/specs/` (global spec)
 - [ ] Archive the change under `openspec/changes/archive/`
 - [ ] Confirm default branch contains final merged artifacts
+- [ ] Prune merged local feature branches and stale remote-tracking refs
+
+Suggested cleanup after archive: `git fetch --prune` and `git branch -d <feature-branch>`

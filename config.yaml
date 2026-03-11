@@ -33,8 +33,8 @@ rules:
   tasks:
     - "When initializing a change manually (without the openspec-propose skill), run npm run opsx:init-change -- <change-name> [capability-name] from project root. When using the propose skill, initialization is handled automatically."
     - "Keep default implementation ordering from schema dependencies; do not reorder artifacts outside default flow."
-    - "Include an execution checklist covering: feature branch creation, sub-task implementation, duplication/complexity review, tests, build verification, PR creation, review/CI resolution, auto-merge enablement, and branch cleanup."
-    - "Include completion checklist items for: docs updates, archive step, and syncing approved spec deltas back to openspec/specs before or during archive workflow."
+    - "Include an execution checklist covering: checking out the default branch, pulling the latest remote changes, feature branch creation, sub-task implementation, duplication/complexity review, tests, build verification, PR creation, review/CI resolution, and auto-merge enablement."
+    - "Include completion checklist items for: docs updates, archive step, syncing approved spec deltas back to openspec/specs before or during archive workflow, and pruning merged local branches after archive."
     - "Prefer small, testable tasks with explicit verification commands."
     - 'Required sections: "Execution", "Validation", "PR and Merge", "Post-Merge".'
     - "Include ownership metadata where available: implementer, reviewer, and approval expectation."

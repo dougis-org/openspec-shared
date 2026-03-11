@@ -9,7 +9,7 @@ used across all dougis-org projects.
 ## Contents
 
 | Path | Purpose |
-|------|---------|
+| ---- | ------- |
 | `config.yaml` | OpenSpec workflow configuration |
 | `templates/` | Proposal, design, spec, and tasks templates |
 | `skills/` | Four OpenSpec agent skills for VS Code Copilot |
@@ -121,6 +121,12 @@ npm run opsx:init-change -- add-dark-mode
 This runs `openspec new change <change-name>` then copies all four templates into
 `openspec/changes/<change-name>/specs/<capability-name>/`.
 
+Before starting implementation for that change, check out the repository's default branch and pull the latest remote state so the feature branch starts from current history. The expected sequence is `git checkout <default-branch>`, `git pull --ff-only`, then create the feature branch.
+
+The shared workflow expects local cleanup after merge and archive: archive the completed
+change under `openspec/changes/archive/`, then prune merged local branches and stale
+remote-tracking refs to keep the repository clean.
+
 ---
 
 ## Keeping the Submodule Up to Date
@@ -155,7 +161,7 @@ git submodule update --init
 ## Skill Reference
 
 | Skill | When to use |
-|-------|-------------|
+| ----- | ----------- |
 | `openspec-propose` | Quickly describe what to build and get a full proposal |
 | `openspec-explore` | Think through an idea before or during a change |
 | `openspec-apply-change` | Implement tasks from an approved change |
