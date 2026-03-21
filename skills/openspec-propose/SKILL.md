@@ -18,10 +18,11 @@ This skill creates:
 - `proposal.md` for what and why
 - `design.md` for how
 - `tasks.md` for implementation steps
+- `tests.md` for test cases
 
 When ready to implement, run `/opsx:apply`.
 
-Before starting implementation work, check out the default branch and pull the latest remote changes so the feature branch starts from current state.
+Before starting implementation work, you must check out the default branch and pull the latest remote changes so the feature branch starts from the most current state.
 
 ## Input
 
@@ -78,7 +79,7 @@ The user's request should include either a kebab-case change name or a descripti
    - Apply `context` and `rules` as constraints, but do not copy them into the file
    - Show brief progress such as `Created [artifact-id]`
 
-   Continue until all entries in `applyRequires` are complete.
+   Continue until all entries in `applyRequires` are complete. This includes the `tests` artifact.
 
    After creating each artifact:
 
@@ -100,7 +101,7 @@ After completing all artifacts, summarize:
 - Change name and location
 - Artifacts created with brief descriptions
 - Readiness status: `All artifacts created. Ready for implementation.`
-- Prompt: `Before implementation, run git checkout <default-branch> and git pull --ff-only, then run /opsx:apply or ask me to implement to start working on the tasks.`
+- Prompt: `Before implementation, you must run git checkout <default-branch> and git pull --ff-only, then run /opsx:apply or ask me to implement to start working on the tasks.`
 
 ## Artifact Creation Guidelines
 

@@ -28,7 +28,18 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    **IMPORTANT**: Do NOT guess or auto-select a change. Always let the user choose.
 
-2. **Check artifact completion status**
+2. **Check Pull Request Status**
+
+   Before proceeding, you MUST verify the status of the pull request associated with the change.
+
+   - **Find the PR:** Use the git history or GitHub CLI (`gh pr list`) to find the PR associated with the feature branch for the change.
+   - **Check Merge Status:** The PR MUST be merged. If it is not merged, the change cannot be archived.
+   - **Check CI Status:** All CI checks on the PR MUST have passed. If any have failed, the change cannot be archived.
+   - **Check for Comments:** All review comments, including those from AI agents, MUST be addressed and resolved.
+
+   If any of these conditions are not met, you MUST NOT proceed with the archive. Inform the user of the outstanding issues (e.g., "CI checks failed", "Open review comments exist", "PR is not merged").
+
+3. **Check artifact completion status**
 
    Run `openspec status --change "<name>" --json` to check artifact completion.
 
@@ -43,7 +54,7 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - Use **AskUserQuestion tool** to confirm user wants to proceed
    - Proceed if user confirms
 
-3. **Check task completion status**
+4. **Check task completion status**
 
    Read the tasks file, typically `tasks.md`, to check for incomplete tasks.
 
@@ -57,7 +68,7 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    **If no tasks file exists:** Proceed without task-related warning.
 
-4. **Assess delta spec sync state**
+5. **Assess delta spec sync state**
 
    Check for delta specs at `openspec/changes/<name>/specs/`. If none exist, proceed without sync prompt.
 
@@ -74,7 +85,7 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    If the user chooses sync, use a task or subagent prompt that syncs the delta specs for `[change-name]` back to `openspec/specs/`. For each file under `openspec/changes/[change-name]/specs/[capability]/spec.md`, apply the changes to the corresponding `openspec/specs/[capability]/spec.md`. Include the analyzed delta summary in that prompt. Proceed to archive regardless of choice.
 
-5. **Perform the archive**
+6. **Perform the archive**
 
    Create the archive directory if it doesn't exist:
 
@@ -93,7 +104,7 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    mv openspec/changes/<name> openspec/changes/archive/YYYY-MM-DD-<name>
    ```
 
-6. **Prune merged local branches**
+7. **Prune merged local branches**
 
    After the PR is merged and the change has been archived, clean up local git state.
 
@@ -116,7 +127,7 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - If the branch is not fully merged, warn the user and leave it in place
    - If the feature branch name cannot be determined reliably, tell the user branch pruning is still required and show the cleanup commands instead of guessing
 
-7. **Display summary**
+8. **Display summary**
 
    Show archive completion summary including:
 
@@ -144,6 +155,7 @@ All artifacts complete. All tasks complete.
 ## Guardrails
 
 - Always prompt for change selection if not provided
+- **A change can only be archived if the associated Pull Request is merged, all CI checks have passed, and all review comments have been addressed.**
 - Use artifact graph, `openspec status --json`, for completion checking
 - Do not block archive on warnings; inform and confirm instead
 - Preserve `.openspec.yaml` when moving to archive because it moves with the directory

@@ -39,6 +39,7 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    - `schemaName`: The workflow being used, for example `spec-driven`
    - Which artifact contains the tasks, typically `tasks` for `spec-driven`
+   - Check for a `tests` artifact. If it does not exist, create it from the `tests.template.md` template.
 
 3. **Get apply instructions**
 
@@ -63,10 +64,18 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    Read the files listed in `contextFiles` from the apply instructions output.
 
-   - For `spec-driven`, this typically includes proposal, specs, design, and tasks
+   - For `spec-driven`, this typically includes proposal, specs, design, tasks, and tests.
    - For other schemas, follow `contextFiles` exactly as returned by the CLI
 
-5. **Show current progress**
+5. **Sync with default branch**
+
+   Before starting implementation, you MUST sync from the default branch.
+
+   - `git checkout <default-branch>`
+   - `git pull --ff-only`
+   - `git checkout -b <feature-branch>` or `git checkout <feature-branch>` if it already exists.
+
+6. **Show current progress**
 
    Display:
 
@@ -75,21 +84,28 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - Remaining tasks overview
    - Dynamic instruction from the CLI
 
-   If implementation is just starting, explicitly instruct the user to sync from the default branch before creating or checking out the feature branch:
+7. **Implement tasks (TDD)**
 
-   - `git checkout <default-branch>`
-   - `git pull --ff-only`
-   - `git checkout -b <feature-branch>`
+   For each pending task, follow a strict Test-Driven Development process:
 
-6. **Implement tasks**
+   1.  **Write a failing test:**
+        - Announce "Writing failing test for: <task description>".
+        - Add a new test case to `tests.md`.
+        - Write the test code in the appropriate test file.
+        - Run the test and confirm that it fails as expected.
 
-   For each pending task:
+   2.  **Write code to pass the test:**
+        - Announce "Writing code to pass test for: <task description>".
+        - Write the minimum amount of implementation code to make the test pass.
+        - Run the tests and confirm that all tests now pass.
 
-   - Show which task is being worked on
-   - Make the required code changes
-   - Keep changes minimal and focused
-   - Mark the task complete in the tasks file by changing `- [ ]` to `- [x]`
-   - Continue to the next task
+   3.  **Refactor:**
+        - Announce "Refactoring code for: <task description>".
+        - Refactor the implementation code and tests for clarity, efficiency, and to meet coding standards.
+        - Ensure all tests still pass after refactoring.
+
+   4.  **Mark task complete:**
+        - Mark the task as complete in `tasks.md` by changing `- [ ]` to `- [x]`.
 
    Pause if:
 
@@ -98,7 +114,7 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - An error or blocker is encountered
    - The user interrupts
 
-7. **On completion or pause, show status**
+8. **On completion or pause, show status**
 
    Display:
 
@@ -113,12 +129,15 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 ## Implementing: <change-name> (schema: <schema-name>)
 
 Working on task 3/7: <task description>
-...implementation happening...
+
+1.  **Test:** Writing failing test for <task description>.
+2.  **Implement:** Writing code to pass test.
+3.  **Refactor:** Refactoring code.
+
 ✓ Task complete
 
 Working on task 4/7: <task description>
-...implementation happening...
-✓ Task complete
+...
 ```
 
 ## Output On Completion
@@ -162,6 +181,7 @@ What would you like to do?
 
 - Keep going through tasks until done or blocked
 - Always read context files before starting
+- **Adhere strictly to the TDD process for all implementation.**
 - If a task is ambiguous, pause and ask before implementing
 - If implementation reveals issues, pause and suggest artifact updates
 - Keep code changes minimal and scoped to each task
