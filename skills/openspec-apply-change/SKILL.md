@@ -154,7 +154,8 @@ Working on task 4/7: <task description>
 - [x] Task 2
 ...
 
-All tasks complete. Ready to archive this change.
+All tasks complete. Now archiving the change.
+/opsx:archive <change-name>
 ```
 
 ## Output On Pause

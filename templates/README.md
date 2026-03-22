@@ -1,26 +1,11 @@
-# OpenSpec Starter Pack
+# OpenSpec Templates
 
-Reusable templates aligned with `openspec/config.yaml` rules.
+This directory contains templates used by the OpenSpec CLI to generate various artifacts for a change.
 
-## Files
+## Template Descriptions
 
-- `proposal.template.md`
-- `design.template.md`
-- `tasks.template.md`
-- `spec.template.md`
-
-## How to use
-
-Create and scaffold a new change with:
-
-```bash
-npm run opsx:init-change -- <change-name> [capability-name]
-```
-
-This runs `openspec new change` and copies all templates into the new change directory automatically.
-
-## Notes
-
-- Keep default OpenSpec flow: proposal -> design -> specs -> tasks -> apply -> archive -> prune merged local branches.
-- Start implementation by checking out the default branch, pulling the latest remote changes, and only then creating the feature branch.
-- If scope changes after approval, update proposal, design, specs, and tasks before implementation.
+*   **`design.template.md`**: This template is used for high-level design documentation. It focuses on architectural decisions, dependencies, interfaces, and overall system structure.
+*   **`proposal.template.md`**: This template is used to outline the initial proposal for a change, including the problem statement, proposed solution, and benefits.
+*   **`spec.template.md`**: This template is used to detail *changes* to existing specifications or to define new, granular requirements. It is additive to the `design.md` and focuses on specific functional and non-functional requirements, scenarios, and traceability. It is not intended to replace the `design.md`.
+*   **`tasks.template.md`**: This template is used to break down the implementation work into actionable tasks, including execution steps, validation criteria, and PR/merge procedures.
+*   **`tests.template.md`**: This template is used to define the test strategy and specific test cases for a change.

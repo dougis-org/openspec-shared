@@ -21,10 +21,10 @@ Suggested start-of-work commands: `git checkout <default-branch>` and `git pull 
 
 Verification requirements (all must pass before PR):
 
-- **Unit tests** — run the project's unit test suite; all tests must pass
-- **Integration tests** — run the project's integration test suite; all tests must pass
-- **Regression / E2E tests** — run the project's end-to-end or regression test suite; all tests must pass
-- **Build** — run the project's build script; build must succeed with no errors
+- [ ] **Unit tests** — run the project's unit test suite; all tests must pass
+- [ ] **Integration tests** — run the project's integration test suite; all tests must pass
+- [ ] **Regression / E2E tests** — run the project's end-to-end or regression test suite; all tests must pass
+- [ ] **Build** — run the project's build script; build must succeed with no errors
 
 Use the project's documented commands for each of the above (see project README or CLAUDE.md / AGENTS.md).
 
@@ -44,9 +44,9 @@ Ownership metadata:
 
 Blocking resolution flow:
 
-- CI failure -> fix -> re-run checks
-- Security finding -> remediate -> re-scan
-- Review blocker -> address comments or escalate after defined timeout
+- [ ] CI failure -> fix -> re-run checks
+- [ ] Security finding -> remediate -> re-scan
+- [ ] Review blocker -> address comments or escalate after defined timeout
 
 ## Post-Merge
 
