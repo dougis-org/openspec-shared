@@ -104,7 +104,9 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    mv openspec/changes/<name> openspec/changes/archive/YYYY-MM-DD-<name>
    ```
 
-7. **Prune merged local branches**
+   **Single-commit rule:** After the move, stage both the new archive path and the deletion of the original path together before committing. Use `git add openspec/changes/archive/YYYY-MM-DD-<name>` and `git rm -r openspec/changes/<name>` (or equivalent) so that the copy and the delete land in **one commit**. Never commit the copy first and the delete separately — this leaves the repository in a split state between commits.
+
+6. **Prune merged local branches**
 
    After the PR is merged and the change has been archived, clean up local git state.
 
@@ -163,3 +165,4 @@ All artifacts complete. All tasks complete.
 - If sync is requested, use an inline subagent to apply delta specs to `openspec/specs/`
 - If delta specs exist, always run the sync assessment and show the combined summary before prompting
 - After a successful archive, prune only merged local branches and stale remote-tracking refs; do not force-delete branches
+- The archive move (copy to new location + deletion of original) must always be a single atomic git commit — never two separate commits

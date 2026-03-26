@@ -120,8 +120,55 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    - Tasks completed this session
    - Overall progress in `N/M tasks complete` form
-   - If all done, suggest archive
+   - If all done, proceed to step 8
    - If paused, explain why and wait for guidance
+
+8. **Commit and open PR** *(when all tasks complete)*
+
+   After all tasks are marked complete and all local validation passes:
+
+   - Commit all changes to the working branch with a clear message
+   - Push the working branch to remote
+   - Open a PR from the working branch to the default branch
+   - Announce the PR URL
+
+9. **Monitor PR comments** *(iterative loop)*
+
+   Poll the PR for new review comments. For each unresolved comment:
+
+   - Read the comment
+   - Implement the requested change or respond if the request is unclear
+   - Commit the fix to the working branch and push
+   - Mark the comment as resolved if possible
+   - Repeat until no unresolved blocking comments remain
+
+10. **Enable auto-merge**
+
+    Once all required CI checks are green and no blocking review comments remain:
+
+    - Enable auto-merge on the PR
+    - **Never force-merge** — wait for the merge to complete naturally, or continue if a human force-merges
+
+11. **Monitor CI checks** *(iterative loop)*
+
+    After each push, check all CI check statuses on the PR. For any failing check:
+
+    - Read the failure output
+    - Diagnose the root cause
+    - Fix the issue, commit, and push
+    - Repeat until all required checks pass
+
+    The comment and CI loops run concurrently: if both comments and CI failures are present, address comments first, then confirm CI passes after the resulting push.
+
+12. **Post-merge steps** *(after PR merges)*
+
+    - `git checkout <default-branch>` and `git pull --ff-only`
+    - Verify the merged changes appear on the default branch
+    - Mark any remaining tasks as complete (`- [x]`) in the tasks file
+    - Sync approved spec deltas to `openspec/specs/` if applicable
+    - Archive the change: move the entire `openspec/changes/<name>/` directory to `openspec/changes/archive/YYYY-MM-DD-<name>/` — stage **both** the new location and the removal of the original in one `git add` so they land in a single commit; never split the copy and delete into separate commits
+    - Commit and push the archive to the default branch
+    - Run `git fetch --prune` and `git branch -d <feature-branch>` to clean up
 
 ## Output During Implementation
 
@@ -154,8 +201,20 @@ Working on task 4/7: <task description>
 - [x] Task 2
 ...
 
-All tasks complete. Now archiving the change.
-/opsx:archive <change-name>
+All tasks complete. Opening PR and entering review/CI monitoring loop.
+```
+
+## Output After Post-Merge
+
+```text
+## Change Complete
+
+**Change:** <change-name>
+**Schema:** <schema-name>
+**PR:** merged ✓
+**Default branch:** verified ✓
+**Archive:** openspec/changes/archive/YYYY-MM-DD-<name>/ ✓
+**Branch cleanup:** <feature-branch> deleted ✓
 ```
 
 ## Output On Pause
@@ -189,6 +248,11 @@ What would you like to do?
 - Update the task checkbox immediately after completing each task
 - Pause on errors, blockers, or unclear requirements; do not guess
 - Use `contextFiles` from CLI output and do not assume specific file names
+- In a git repo: Step 1 is always checkout default branch + pull; Step 2 is always create working branch + push to remote immediately
+- After all tasks are locally complete and validated, always commit + push + open PR before declaring done
+- Monitor PR comments and CI checks in iterative loops until the PR is fully clean
+- Never force-merge; enable auto-merge and wait
+- Post-merge archive must be a single atomic commit: copy to archive location and delete original path must be staged together, never split across two commits
 
 ## Fluid Workflow Integration
 

@@ -9,7 +9,7 @@ context: |
 rules:
   proposal:
     - "Iterate on proposal quality before finalizing; explicitly call out gaps, assumptions, constraints, and edge cases."
-    - 'If unresolved ambiguity exists, include an "Open Questions" section with concrete questions for the requester.'
+    - 'Include an "Open Questions" section with concrete questions for the requester. If no unresolved ambiguity exists, include a statement confirming this.'
     - "Fully define problem space boundaries: in-scope, out-of-scope, impacted capabilities, and risks."
     - 'Required sections: "Why", "Problem Space", "Scope", "Risks", "Open Questions", "Non-Goals".'
     - "Include explicit change-control note: if scope changes after approval, proposal/design/specs/tasks must be updated before apply."
@@ -33,10 +33,15 @@ rules:
   tasks:
     - "When initializing a change manually (without the openspec-propose skill), run npm run opsx:init-change -- <change-name> [capability-name] from project root. When using the propose skill, initialization is handled automatically."
     - "Keep default implementation ordering from schema dependencies; do not reorder artifacts outside default flow."
-    - "Include an execution checklist covering: checking out the default branch, pulling the latest remote changes, feature branch creation, sub-task implementation, duplication/complexity review, tests, build verification, PR creation, review/CI resolution, and auto-merge enablement."
+    - "Step 1 of Execution must always be: checkout the default branch (main or master) and pull with fast-forward only."
+    - "Step 2 of Execution must always be: create the working branch from the default branch, then immediately push it to remote with `git push -u origin <feature-branch-name>` — the branch must exist on remote before any implementation work begins."
+    - "After all local validation passes and all tasks are marked complete, the agent must commit all changes to the working branch, push to remote, and open a PR from the working branch to the default branch."
+    - "After opening a PR, the agent must actively monitor for review comments and CI check results. For comments: address each one, commit fixes to the working branch, push, and repeat until no unresolved comments remain. For CI failures: diagnose, fix, commit, push, and repeat until all checks pass. Both loops are iterative and must continue until the PR is fully clean."
+    - "Enable auto-merge only when all required CI checks are green and no blocking review comments remain. Never force-merge; if a human force-merges, proceed directly to post-merge steps."
+    - "Post-merge steps must be performed in order: (1) checkout the default branch and pull, (2) verify merged changes appear on the default branch, (3) mark all tasks complete, (4) sync approved spec deltas to openspec/specs/, (5) archive the change directory as a single atomic commit that includes both the copy to archive/ and the deletion of the original location — never split this into two commits, (6) push the archive commit to the default branch."
     - "Include completion checklist items for: docs updates, archive step, syncing approved spec deltas back to openspec/specs before or during archive workflow, and pruning merged local branches after archive."
     - "Prefer small, testable tasks with explicit verification commands."
-    - 'Required sections: "Execution", "Validation", "PR and Merge", "Post-Merge".'
+    - 'Required sections: "Preparation", "Execution", "Validation", "PR and Merge", "Post-Merge".'
     - "Include ownership metadata where available: implementer, reviewer, and approval expectation."
     - "Define blocking criteria and resolution flow for CI failures, unresolved review comments, and security findings."
     - "All file/folder references in tasks content must be relative to project root; never use absolute paths."
