@@ -9,8 +9,6 @@
   Leave blank if not issue-driven.
 -->
 
--
-
 ## Why
 
 - Problem statement:

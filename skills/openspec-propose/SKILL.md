@@ -40,9 +40,15 @@ The user's request should include either a kebab-case change name or a descripti
 
    **IMPORTANT:** Do not proceed until the requested change is understood.
 
-   Also ask whether this change is driven by one or more GitHub issues. If so, collect issue references (e.g. `#42`, `myorg/repo#7`). These will be recorded in the proposal so the PR can automatically close them.
+2. **Collect GitHub issue references** *(unconditional)*
 
-2. **Create the change directory**
+   Always ask, regardless of whether the user provided a clear description upfront:
+
+   > Is this change driven by one or more GitHub issues? If so, share the issue numbers or URLs (e.g. `#42`, `myorg/repo#7`). Leave blank if not issue-driven.
+
+   Record any references provided. They will be written into the `## GitHub Issues` section of `proposal.md` so the PR can automatically close them on merge.
+
+3. **Create the change directory**
 
    ```bash
    openspec new change "<name>"
@@ -50,7 +56,7 @@ The user's request should include either a kebab-case change name or a descripti
 
    This creates a scaffolded change at `openspec/changes/<name>/` with `.openspec.yaml`.
 
-3. **Get the artifact build order**
+4. **Get the artifact build order**
 
    ```bash
    openspec status --change "<name>" --json
@@ -61,7 +67,7 @@ The user's request should include either a kebab-case change name or a descripti
    - `applyRequires`: artifact IDs required before implementation, for example `tasks`
    - `artifacts`: all artifacts with status and dependencies
 
-4. **Create artifacts in sequence until apply-ready**
+5. **Create artifacts in sequence until apply-ready**
 
    Use the todo tracking tool to track progress through the artifacts.
 
@@ -90,7 +96,7 @@ The user's request should include either a kebab-case change name or a descripti
 
    If an artifact requires user input because context is unclear, ask for clarification and continue.
 
-5. **Show final status**
+6. **Show final status**
 
    ```bash
    openspec status --change "<name>"

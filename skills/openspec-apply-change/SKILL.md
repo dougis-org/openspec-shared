@@ -129,7 +129,7 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    - Commit all changes to the working branch with a clear message
    - Push the working branch to remote
-   - Before opening the PR, read `proposal.md` and extract any issue references listed under `## GitHub Issues`. Extract references of the form `#N` or `owner/repo#N` from those lines, ignoring Markdown list markers (like `-` or `*`), blank lines, and the HTML comment block.
+   - Before opening the PR, read `proposal.md` and extract any issue references listed under `## GitHub Issues`. Extract references of the form `#N` or `owner/repo#N` from those lines, ignoring Markdown list markers (`-`, `*`), leading/trailing whitespace, blank lines, and the HTML comment block.
    - Build a closing-keywords block from those references, e.g.:
      ```
      Closes #42
