@@ -129,7 +129,14 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    - Commit all changes to the working branch with a clear message
    - Push the working branch to remote
-   - Open a PR from the working branch to the default branch
+   - Before opening the PR, read `proposal.md` and extract any issue references listed under `## GitHub Issues`. Parse lines of the form `#N` or `owner/repo#N` (skip blank lines and the HTML comment block).
+   - Build a closing-keywords block from those references, e.g.:
+     ```
+     Closes #42
+     Closes myorg/repo#7
+     ```
+     If there are no issue references, omit this block entirely.
+   - Open a PR from the working branch to the default branch. Include the closing-keywords block at the end of the PR body so GitHub automatically closes the linked issues on merge.
    - Announce the PR URL
    - **Wait 3 minutes** before doing anything else — this gives CI time to start and reviewers time to leave early comments
 

@@ -40,6 +40,8 @@ The user's request should include either a kebab-case change name or a descripti
 
    **IMPORTANT:** Do not proceed until the requested change is understood.
 
+   Also ask whether this change is driven by one or more GitHub issues. If so, collect issue references (e.g. `#42`, `myorg/repo#7`). These will be recorded in the proposal so the PR can automatically close them.
+
 2. **Create the change directory**
 
    ```bash

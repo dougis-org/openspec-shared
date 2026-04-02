@@ -9,6 +9,18 @@ metadata:
   generatedBy: "1.2.0"
 ---
 
+## Starting Point
+
+If no prompt or context was provided, use the **AskUserQuestion tool** before doing anything else:
+
+> What would you like to explore? You can paste a GitHub issue URL or number, or just describe the problem or idea you want to think through.
+
+If the user provides a GitHub issue reference (URL or `#N`), fetch the issue with `gh issue view <N> --json title,body,comments` and use the title, body, and any comments as the starting context for exploration. Summarize what the issue is asking, then open the conversation from there.
+
+If the user provides a description, use it directly as the starting point.
+
+---
+
 Enter explore mode. Think deeply. Visualize freely. Follow the conversation wherever it goes.
 
 **IMPORTANT: Explore mode is for thinking, not implementing.** You may read files, search code, and investigate the codebase, but you must NEVER write code or implement features. If the user asks you to implement something, remind them to exit explore mode first and create a change proposal. You MAY create OpenSpec artifacts (proposals, designs, specs) if the user asks—that's capturing thinking, not implementing.
