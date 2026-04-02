@@ -149,7 +149,7 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    Run both checks in parallel:
 
    - `gh pr checks <PR-URL>` — list all CI check statuses
-   - `gh api graphql -f query='{ repository(owner:"<owner>", name:"<repo>") { pullRequest(number:<num>) { reviewThreads(first:100) { pageInfo { hasNextPage } nodes { id isResolved comments(last:1) { nodes { body author { login } createdAt } } } } } } }'` — list all review threads with their resolved status and latest comment
+   - `gh api graphql -f query='{ repository(owner:"<owner>", name:"<repo>") { pullRequest(number:<num>) { reviewThreads(first:100) { pageInfo { hasNextPage endCursor } nodes { id isResolved comments(last:1) { nodes { body author { login } createdAt } } } } } } }'` — list all review threads with their resolved status and latest comment
 
    If `pageInfo.hasNextPage` is `true`, paginate using `after:"<endCursor>"` until all threads are fetched. In practice, PRs rarely exceed 100 threads; if one does, retrieve all pages before proceeding.
 
