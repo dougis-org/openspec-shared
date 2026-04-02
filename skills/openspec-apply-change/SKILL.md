@@ -149,41 +149,30 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    Run both checks in parallel:
 
    - `gh pr checks <PR-URL>` — list all CI check statuses
-   - `gh api graphql -f query='{ repository(owner:"<owner>", name:"<repo>") { pullRequest(number:<num>) { reviewThreads(first:50) { nodes { id isResolved comments(first:1) { nodes { body } } } } } } }'` — list all review threads with their resolved status
+   - `gh api graphql -f query='{ repository(owner:"<owner>", name:"<repo>") { pullRequest(number:<num>) { reviewThreads(first:100) { pageInfo { hasNextPage } nodes { id isResolved comments(last:1) { nodes { body author { login } createdAt } } } } } } }'` — list all review threads with their resolved status and latest comment
 
-   **9b. Address failing CI checks** *(if any)*
+   If `pageInfo.hasNextPage` is `true`, paginate using `after:"<endCursor>"` until all threads are fetched. In practice, PRs rarely exceed 100 threads; if one does, retrieve all pages before proceeding.
 
-   For each failing check:
+   **9b. Address all open issues** *(CI failures and review comments together)*
 
-   - Read the failure output (`gh run view <run-id> --log-failed`)
-   - Diagnose the root cause
-   - Fix the issue in code, commit, and push
-   - After pushing, **wait 1 minute** to let CI re-trigger and allow any comments you previously addressed to auto-resolve
-   - After the 1-minute wait, re-run the GraphQL query from 9a; for any thread where you addressed the comment but it still shows `isResolved: false`, resolve it explicitly:
-     ```graphql
-     mutation {
-       resolveReviewThread(input: { threadId: "<thread-id>" }) {
-         thread { id isResolved }
-       }
-     }
-     ```
-     Run this via: `gh api graphql -f query='mutation { resolveReviewThread(input:{threadId:"<thread-id>"}) { thread { id isResolved } } }'`
-   - Return to 9a
+   Gather every problem in one pass:
 
-   **9c. Address open review comments** *(if any, after CI is green)*
+   - For each **failing CI check**: read the failure output (`gh run view <run-id> --log-failed`), diagnose, and fix in code.
+   - For each **unresolved review thread**: read the latest comment body, and either implement the requested change or draft a polite reply if the request is unclear or out of scope.
 
-   For each unresolved review thread:
+   Once all fixes and replies are ready, **commit everything and push once**. Batching into a single push minimises unnecessary CI runs and wait time.
 
-   - Read the comment body
-   - Implement the requested change, or leave a polite reply if the request is unclear or out of scope
-   - Commit the fix to the working branch and push
-   - **Wait 1 minute** to allow the comment to auto-resolve and CI to re-trigger
-   - After the 1-minute wait, re-run the GraphQL query; for any thread you addressed that still shows `isResolved: false`, resolve it explicitly using the mutation above
-   - Return to 9a to re-check CI (your push may have introduced new failures)
+   After pushing, **wait 1 minute** to let CI re-trigger and allow addressed threads to auto-resolve.
 
-   **9d. Exit condition**
+   After the 1-minute wait, re-run the GraphQL query from 9a; for any thread you addressed that still shows `isResolved: false`, resolve it explicitly:
 
-   When `gh pr checks` shows all checks passing **and** the GraphQL query returns zero threads with `isResolved: false`, exit the loop and proceed to step 10.
+   Run this via: `gh api graphql -f query='mutation { resolveReviewThread(input: { threadId: "<thread-id>" }) { thread { id isResolved } } }'`
+
+   Return to 9a.
+
+   **9c. Exit condition**
+
+   When `gh pr checks` shows all checks passing **and** the GraphQL query returns zero threads with `isResolved: false` across all pages, exit the loop and proceed to step 10.
 
 10. **Enable auto-merge**
 
@@ -245,9 +234,11 @@ All tasks complete. Opening PR — waiting 3 minutes before first check.
 **CI checks:** 2 passing, 1 failing (build)
 **Open threads:** 1 unresolved
 
-→ Addressing failing check: build
-  Diagnosed: missing env var in workflow
-  Fixed, committed, pushed
+→ Gathering all issues before pushing:
+  CI: build failing — diagnosed: missing env var in workflow — fix ready
+  Thread: "<comment body>" — change implemented — fix ready
+
+→ All fixes batched — committing and pushing once
   Waiting 1 minute for CI to re-trigger and comments to auto-resolve...
 
 → Re-checking state after wait
@@ -309,7 +300,9 @@ What would you like to do?
 - After opening a PR, always wait 3 minutes before inspecting comments or checks
 - After every push, always wait 1 minute before re-assessing — lets CI re-trigger and auto-resolve stale comment threads
 - If a review thread you addressed is still open after the 1-minute wait, resolve it explicitly via the GitHub GraphQL `resolveReviewThread` mutation — never leave addressed threads dangling
-- Never enable auto-merge until **both** conditions are simultaneously true: all CI checks green **and** zero open review threads
+- Always paginate review thread queries when `pageInfo.hasNextPage` is `true` — never assume 100 threads is sufficient without checking
+- In each loop iteration, fix all CI failures and address all open review comments before pushing — never push after fixing just one issue; batch all fixes into a single commit+push to minimise CI runs
+- Never enable auto-merge until **both** conditions are simultaneously true: all CI checks green **and** zero open review threads (across all pages)
 - Monitor comments and CI in a single unified loop (step 9); iterate until both exit conditions are met, then and only then enable auto-merge
 - Never force-merge; enable auto-merge and wait
 - Post-merge archive must be a single atomic commit: copy to archive location and delete original path must be staged together, never split across two commits
