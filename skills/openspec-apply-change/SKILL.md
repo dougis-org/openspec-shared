@@ -131,36 +131,62 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - Push the working branch to remote
    - Open a PR from the working branch to the default branch
    - Announce the PR URL
+   - **Wait 3 minutes** before doing anything else — this gives CI time to start and reviewers time to leave early comments
 
-9. **Monitor PR comments** *(iterative loop)*
+9. **PR review and CI loop** *(iterate until the PR is fully clean)*
 
-   Poll the PR for new review comments. For each unresolved comment:
+   Repeat the following cycle until **all CI checks are green AND there are zero open review comments**:
 
-   - Read the comment
-   - Implement the requested change or respond if the request is unclear
+   **9a. Assess current state**
+
+   Run both checks in parallel:
+
+   - `gh pr checks <PR-URL>` — list all CI check statuses
+   - `gh api graphql -f query='{ repository(owner:"<owner>", name:"<repo>") { pullRequest(number:<num>) { reviewThreads(first:50) { nodes { id isResolved comments(first:1) { nodes { body } } } } } } }'` — list all review threads with their resolved status
+
+   **9b. Address failing CI checks** *(if any)*
+
+   For each failing check:
+
+   - Read the failure output (`gh run view <run-id> --log-failed`)
+   - Diagnose the root cause
+   - Fix the issue in code, commit, and push
+   - After pushing, **wait 1 minute** to let CI re-trigger and allow any comments you previously addressed to auto-resolve
+   - After the 1-minute wait, re-run the GraphQL query from 9a; for any thread where you addressed the comment but it still shows `isResolved: false`, resolve it explicitly:
+     ```graphql
+     mutation {
+       resolveReviewThread(input: { threadId: "<thread-id>" }) {
+         thread { id isResolved }
+       }
+     }
+     ```
+     Run this via: `gh api graphql -f query='mutation { resolveReviewThread(input:{threadId:"<thread-id>"}) { thread { id isResolved } } }'`
+   - Return to 9a
+
+   **9c. Address open review comments** *(if any, after CI is green)*
+
+   For each unresolved review thread:
+
+   - Read the comment body
+   - Implement the requested change, or leave a polite reply if the request is unclear or out of scope
    - Commit the fix to the working branch and push
-   - Mark the comment as resolved if possible
-   - Repeat until no unresolved blocking comments remain
+   - **Wait 1 minute** to allow the comment to auto-resolve and CI to re-trigger
+   - After the 1-minute wait, re-run the GraphQL query; for any thread you addressed that still shows `isResolved: false`, resolve it explicitly using the mutation above
+   - Return to 9a to re-check CI (your push may have introduced new failures)
+
+   **9d. Exit condition**
+
+   When `gh pr checks` shows all checks passing **and** the GraphQL query returns zero threads with `isResolved: false`, exit the loop and proceed to step 10.
 
 10. **Enable auto-merge**
 
-    Once all required CI checks are green and no blocking review comments remain:
+    Only reached when **all CI checks are green and all review threads are resolved**:
 
-    - Enable auto-merge on the PR
+    - Enable auto-merge on the PR: `gh pr merge <PR-URL> --auto --merge`
+    - Announce that auto-merge has been enabled
     - **Never force-merge** — wait for the merge to complete naturally, or continue if a human force-merges
 
-11. **Monitor CI checks** *(iterative loop)*
-
-    After each push, check all CI check statuses on the PR. For any failing check:
-
-    - Read the failure output
-    - Diagnose the root cause
-    - Fix the issue, commit, and push
-    - Repeat until all required checks pass
-
-    The comment and CI loops run concurrently: if both comments and CI failures are present, address comments first, then confirm CI passes after the resulting push.
-
-12. **Post-merge steps** *(after PR merges)*
+11. **Post-merge steps** *(after PR merges)*
 
     - `git checkout <default-branch>` and `git pull --ff-only`
     - Verify the merged changes appear on the default branch
@@ -201,7 +227,30 @@ Working on task 4/7: <task description>
 - [x] Task 2
 ...
 
-All tasks complete. Opening PR and entering review/CI monitoring loop.
+All tasks complete. Opening PR — waiting 3 minutes before first check.
+```
+
+## Output During PR Loop
+
+```text
+## PR Review Loop — <PR-URL>
+
+**CI checks:** 2 passing, 1 failing (build)
+**Open threads:** 1 unresolved
+
+→ Addressing failing check: build
+  Diagnosed: missing env var in workflow
+  Fixed, committed, pushed
+  Waiting 1 minute for CI to re-trigger and comments to auto-resolve...
+
+→ Re-checking state after wait
+  Thread "<comment body>" still open — resolving via GraphQL resolveReviewThread
+  ✓ Thread resolved
+
+**CI checks:** 3 passing ✓
+**Open threads:** 0 ✓
+
+→ All checks green and no open threads — enabling auto-merge
 ```
 
 ## Output After Post-Merge
@@ -250,7 +299,11 @@ What would you like to do?
 - Use `contextFiles` from CLI output and do not assume specific file names
 - In a git repo: Step 1 is always checkout default branch + pull; Step 2 is always create working branch + push to remote immediately
 - After all tasks are locally complete and validated, always commit + push + open PR before declaring done
-- Monitor PR comments and CI checks in iterative loops until the PR is fully clean
+- After opening a PR, always wait 3 minutes before inspecting comments or checks
+- After every push, always wait 1 minute before re-assessing — lets CI re-trigger and auto-resolve stale comment threads
+- If a review thread you addressed is still open after the 1-minute wait, resolve it explicitly via the GitHub GraphQL `resolveReviewThread` mutation — never leave addressed threads dangling
+- Never enable auto-merge until **both** conditions are simultaneously true: all CI checks green **and** zero open review threads
+- Monitor comments and CI in a single unified loop (step 9); iterate until both exit conditions are met, then and only then enable auto-merge
 - Never force-merge; enable auto-merge and wait
 - Post-merge archive must be a single atomic commit: copy to archive location and delete original path must be staged together, never split across two commits
 
