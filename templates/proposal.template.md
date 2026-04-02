@@ -1,3 +1,14 @@
+## GitHub Issues
+
+<!--
+  List any GitHub issues this change addresses, one per line.
+  Use the format: owner/repo#N or just #N for issues in the same repo.
+  Example:
+    - #42
+    - myorg/myrepo#7
+  Leave blank if not issue-driven.
+-->
+
 ## Why
 
 - Problem statement:
