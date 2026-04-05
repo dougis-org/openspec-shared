@@ -1,7 +1,7 @@
-schema: spec-driven
+schema: sdd-with-feedback-loop
 
 context: |
-  Use default OpenSpec spec-driven flow (proposal -> design -> specs -> tasks -> apply -> archive).
+  Use default OpenSpec sdd-with-feedback-loop flow (proposal -> design -> specs -> tasks -> apply -> archive).
   Keep artifacts concise and implementation-ready.
   Preserve default OpenSpec artifact lifecycle and dependency ordering.
   All file and folder references must be project-root-relative paths (for example, openspec/changes/my-change/proposal.md).

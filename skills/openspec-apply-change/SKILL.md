@@ -37,8 +37,8 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    Parse the JSON to understand:
 
-   - `schemaName`: The workflow being used, for example `spec-driven`
-   - Which artifact contains the tasks, typically `tasks` for `spec-driven`
+   - `schemaName`: The workflow being used, for example `sdd-with-feedback-loop`
+   - Which artifact contains the tasks, typically `tasks` for `sdd-with-feedback-loop`
    - Check for a `tests` artifact. If it does not exist, create it from the `tests.template.md` template.
 
 3. **Get apply instructions**
@@ -64,7 +64,7 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    Read the files listed in `contextFiles` from the apply instructions output.
 
-   - For `spec-driven`, this typically includes proposal, specs, design, tasks, and tests.
+   - For `sdd-with-feedback-loop`, this typically includes proposal, specs, design, tasks, and tests.
    - For other schemas, follow `contextFiles` exactly as returned by the CLI
 
 5. **Sync with default branch**
@@ -84,15 +84,15 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - Remaining tasks overview
    - Dynamic instruction from the CLI
 
-7. **Implement tasks (TDD)**
+7. **Implement tasks (BDD/TDD)**
 
-   For each pending task, follow a strict Test-Driven Development process:
+   For each pending task, follow a strict BDD/TDD process:
 
    1.  **Write a failing test:**
-        - Announce "Writing failing test for: <task description>".
-        - Add a new test case to `tests.md`.
-        - Write the test code in the appropriate test file.
-        - Run the test and confirm that it fails as expected.
+      - Announce "Writing failing BDD/TDD test for: <task description>".
+      - Add a new behavior-focused test case to `tests.md`.
+      - Write the test code in the appropriate test file.
+      - Run the test and confirm that it fails as expected.
 
    2.  **Write code to pass the test:**
         - Announce "Writing code to pass test for: <task description>".
@@ -356,7 +356,7 @@ What would you like to do?
 
 - Keep going through tasks until done or blocked
 - Always read context files before starting
-- **Adhere strictly to the TDD process for all implementation.**
+- **Adhere strictly to the BDD/TDD process for all implementation.**
 - If a task is ambiguous, pause and ask before implementing
 - If implementation reveals issues, pause and suggest artifact updates
 - Keep code changes minimal and scoped to each task

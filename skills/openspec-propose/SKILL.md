@@ -89,6 +89,10 @@ The user's request should include either a kebab-case change name or a descripti
 
    Continue until all entries in `applyRequires` are complete. This includes the `tests` artifact.
 
+   When creating `tasks.md`, include the required pre-PR self-review step from `skills/openspec-apply-change/SKILL.md` as a checklist item before any commit or push steps.
+
+   When creating `tasks.md` and `tests.md`, require a BDD/TDD workflow: define the desired behavior in tests first, then implement against the failing tests. Make that sequence explicit in the task list so implementation cannot begin before the test step is complete.
+
    After creating each artifact:
 
    - Re-run `openspec status --change "<name>" --json`

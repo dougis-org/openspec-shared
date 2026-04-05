@@ -1,7 +1,7 @@
 # openspec-shared
 
 Shared OpenSpec workflow templates, skills, config, and tooling.
-Single source of truth for the spec-driven development workflow
+Single source of truth for the sdd-with-feedback-loop development workflow
 used across all dougis-org projects.
 
 ---
@@ -162,33 +162,7 @@ git submodule update --init
 
 | Skill | When to use |
 | ----- | ----------- |
-| `openspec-propose` | Quickly describe what to build and get a full proposal; collects GitHub issue references so the PR can auto-close them |
-| `openspec-explore` | Think through an idea before or during a change; prompts for a GitHub issue or description if invoked without a prompt |
-| `openspec-apply-change` | Implement tasks from an approved change; automatically adds `Closes #N` keywords to the PR body based on `proposal.md`; runs a unified CI+review loop that batches all fixes into a single push per iteration |
+| `openspec-propose` | Quickly describe what to build and get a full proposal |
+| `openspec-explore` | Think through an idea before or during a change |
+| `openspec-apply-change` | Implement tasks from an approved change |
 | `openspec-archive-change` | Finalize and archive a completed change |
-
----
-
-## GitHub Issue Linking
-
-Changes can be linked to one or more GitHub issues so the PR automatically closes them on merge.
-
-**How it works:**
-
-1. When running `openspec-propose`, you will be asked for any related GitHub issue numbers or URLs.
-2. The references are recorded in the `## GitHub Issues` section of `proposal.md`, one per line (e.g. `- #42`, `- myorg/repo#7`).
-3. When `openspec-apply-change` opens the PR, it reads `proposal.md`, extracts the issue references, and appends `Closes #N` keywords to the PR body.
-4. GitHub closes the linked issues automatically when the PR merges.
-
-If a change is not issue-driven, leave `## GitHub Issues` blank.
-
----
-
-## PR Review Loop
-
-`openspec-apply-change` manages the post-PR lifecycle automatically:
-
-- **Unified loop** — CI failures and open review comments are assessed together in each iteration; all fixes are batched into a single commit+push to minimise unnecessary CI runs.
-- **Paginated thread fetch** — review threads are queried with `first:100` and `pageInfo { hasNextPage endCursor }`, paginating until all threads are retrieved so no comment is missed.
-- **Explicit thread resolution** — threads that do not auto-resolve after a push are closed via the GitHub GraphQL `resolveReviewThread` mutation before auto-merge is enabled.
-- **Auto-merge** — enabled only when all CI checks are green and zero review threads remain open.

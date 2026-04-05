@@ -37,6 +37,7 @@ Use the project's documented commands for each of the above (see project README 
 
 ## PR and Merge
 
+- [ ] Run the required pre-PR self-review from `skills/openspec-apply-change/SKILL.md` before committing
 - [ ] Commit all changes to the working branch and push to remote
 - [ ] Open PR from working branch to `<default-branch>`
 - [ ] Wait for 120 seconds for the Agentic reviewers to post their comments
@@ -45,7 +46,7 @@ Use the project's documented commands for each of the above (see project README 
 - [ ] **Monitor CI checks** — when any CI check fails, diagnose and fix the failure, commit fixes, follow all steps in [Remote push validation] then push to the same working branch; repeat until all checks pass
 - [ ] Wait for the PR to merge — **never force-merge**; if a human force-merges, continue to Post-Merge
 
-The comment and CI resolution loops are iterative: address → validate locally → push → re-check → repeat until the PR is fully clean. If a human force-merges before the PR is clean, proceed directly to Post-Merge steps.
+The comment and CI resolution loops are iterative: address → validate locally → push → sleep for 120 seconds → re-check → repeat until the PR is fully clean. If a human force-merges before the PR is clean, proceed directly to Post-Merge steps.
 
 Ownership metadata:
 
