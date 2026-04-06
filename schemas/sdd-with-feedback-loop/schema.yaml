@@ -1,0 +1,75 @@
+name: sdd-with-feedback-loop
+version: 1
+description: >
+  Spec-driven development with full feedback loop:
+  proposal → design → specs → tasks → apply → archive.
+
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: Change proposal capturing why, problem space, scope, and risks
+    template: proposal.md
+    instruction: |
+      Create a change proposal document covering: why this change is needed,
+      problem space boundaries, scope (in-scope and out-of-scope), risks,
+      open questions, and non-goals. Include a change-control note stating
+      that if scope changes after approval, proposal/design/specs/tasks must
+      be updated before implementation begins.
+    requires: []
+
+  - id: design
+    generates: design.md
+    description: Technical design mapping proposal elements to implementation decisions
+    template: design.md
+    instruction: |
+      Create a technical design document. Map every major proposal element to
+      a corresponding design decision. Document functional and non-functional
+      requirements and ensure they map to acceptance criteria in specs. Include
+      testability notes, risks/trade-offs, rollback/mitigation plan, and an
+      operational blocking policy for CI/review/security failures.
+    requires:
+      - proposal
+
+  - id: specs
+    generates: specs/**/*.md
+    description: Capability specifications with behavior-driven acceptance criteria
+    template: spec.md
+    instruction: |
+      Create specification documents for each capability affected by this change.
+      Express acceptance criteria as behavior scenarios (Given/When/Then).
+      Include ADDED, MODIFIED, and REMOVED requirement sections with at least
+      one scenario each. Include non-functional acceptance criteria for
+      performance, security, reliability, or operability when affected.
+      Include explicit traceability from requirements to acceptance scenarios.
+    requires:
+      - proposal
+      - design
+
+  - id: tasks
+    generates: tasks.md
+    description: Implementation task checklist with Preparation through Post-Merge steps
+    template: tasks.md
+    instruction: |
+      Create an implementation task list with sections: Preparation, Execution,
+      Validation, PR and Merge, and Post-Merge. Follow BDD/TDD workflow: define
+      tests before implementing. Include ownership metadata (implementer, reviewer,
+      required approvals) and a blocking resolution flow for CI failures, unresolved
+      review comments, and security findings. All file/folder references must be
+      relative to the project root.
+    requires:
+      - specs
+
+  - id: tests
+    generates: tests.md
+    description: Test cases following a strict TDD workflow
+    template: tests.md
+    instruction: |
+      Create test cases for all tasks. Follow strict TDD: write failing tests
+      first, then implement against them, then refactor. Map each test case to
+      a task in tasks.md and to an acceptance scenario in the relevant spec.
+    requires:
+      - tasks
+
+apply:
+  requires: [tasks, tests]
+  tracks: tasks.md

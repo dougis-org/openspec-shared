@@ -55,13 +55,15 @@ for s in openspec-propose openspec-apply-change openspec-archive-change openspec
 done
 ```
 
-### 4. Create template and config symlinks
+### 4. Create template, config, and schema symlinks
 
-Point the `openspec/templates` directory and `openspec/config.yaml` at the shared copies:
+Point the `openspec/templates` directory, `openspec/config.yaml`, and
+`openspec/schemas` at the shared copies:
 
 ```sh
 ln -s ../.github/openspec-shared/templates openspec/templates
 ln -s ../.github/openspec-shared/config.yaml openspec/config.yaml
+ln -s ../.github/openspec-shared/schemas openspec/schemas
 ```
 
 ### 5. Create the init script symlink
@@ -86,7 +88,7 @@ Add a convenience script so contributors can run the tool without remembering th
 ### 7. Commit everything
 
 ```sh
-git add .gitmodules .github/openspec-shared .github/skills openspec/templates openspec/config.yaml scripts/init-change.sh package.json
+git add .gitmodules .github/openspec-shared .github/skills openspec/templates openspec/config.yaml openspec/schemas scripts/init-change.sh package.json
 git commit -m "chore: add openspec-shared submodule and symlinks"
 git push
 ```
