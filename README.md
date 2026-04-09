@@ -1,7 +1,7 @@
 # openspec-shared
 
 Shared OpenSpec workflow templates, skills, config, and tooling.
-Single source of truth for the sdd-with-feedback-loop development workflow
+Single source of truth for the spec-driven development workflow
 used across all dougis-org projects.
 
 ---
@@ -12,8 +12,25 @@ used across all dougis-org projects.
 | ---- | ------- |
 | `config.yaml` | OpenSpec workflow configuration |
 | `templates/` | Proposal, design, spec, and tasks templates |
-| `skills/` | Four OpenSpec agent skills for VS Code Copilot |
+| `skills/` | Four OpenSpec agent skills (VS Code Copilot / GitHub Copilot) |
 | `init-change.sh` | POSIX shell script to scaffold a new change |
+| `bootstrap.sh` | Bootstrap script — wires shared assets into a downstream repo |
+
+---
+
+## Supported Agent Surfaces
+
+This shared repo provides assets for the following agents out of the box:
+
+| Surface | Agent | Contents |
+| ------- | ----- | -------- |
+| `.codex/` | OpenAI Codex | `skills/` |
+| `.claude/` | Anthropic Claude | `skills/`, `commands/` |
+| `.gemini/` | Google Gemini | `skills/`, `commands/` |
+| `.github/` | GitHub Copilot / VS Code Copilot | `skills/`, `prompts/` |
+
+> **Note:** `.agent/` exists in this repository as an experimental surface. It is not
+> part of the default onboarding contract and is not wired by `bootstrap.sh`.
 
 ---
 
@@ -27,55 +44,56 @@ used across all dougis-org projects.
 
 ## Adding to a New Project
 
-### 1. Add the submodule
+Setup takes two steps: add the submodule manually, then run the bootstrap script.
+
+### Step 1 — Add the submodule
 
 Run this from your project root:
 
 ```sh
 git submodule add https://github.com/dougis-org/openspec-shared .github/openspec-shared
-git submodule update --init
 ```
 
 This creates `.github/openspec-shared/` and adds a `.gitmodules` entry.
 
-### 2. Create the `openspec/` directory (if it does not exist)
+### Step 2 — Run the bootstrap script
 
 ```sh
-mkdir -p openspec/changes openspec/specs
+sh .github/openspec-shared/bootstrap.sh
 ```
 
-### 3. Create skill symlinks
+The script:
+- initializes or updates the submodule
+- creates the required directories
+- creates symlinks for all supported agent surfaces (`.codex/`, `.claude/`, `.gemini/`, `.github/`)
+- links `openspec/templates`, `openspec/config.yaml`, and `scripts/init-change.sh`
 
-VS Code Copilot discovers skills in `.github/skills/`. Create one symlink per skill:
+It is safe to re-run after bumping the submodule — existing symlinks are replaced.
+
+#### Copy mode (optional)
+
+If symlinks are unavailable or undesirable in your environment, use copy mode:
 
 ```sh
-mkdir -p .github/skills
-for s in openspec-propose openspec-apply-change openspec-archive-change openspec-explore; do
-  ln -s ../openspec-shared/skills/$s .github/skills/$s
-done
+sh .github/openspec-shared/bootstrap.sh --copy
 ```
 
-### 4. Create template, config, and schema symlinks
+Copied assets do not update automatically. After bumping the submodule, re-run bootstrap
+with `--copy` to refresh the copies.
 
-Point the `openspec/templates` directory, `openspec/config.yaml`, and
-`openspec/schemas` at the shared copies:
+### Step 3 — Commit
 
 ```sh
-ln -s ../.github/openspec-shared/templates openspec/templates
-ln -s ../.github/openspec-shared/config.yaml openspec/config.yaml
-ln -s ../.github/openspec-shared/schemas openspec/schemas
+git add .gitmodules .github/openspec-shared \
+    .codex .claude .gemini .github/skills .github/prompts \
+    openspec/templates openspec/config.yaml scripts/init-change.sh
+git commit -m "chore: add openspec-shared submodule and bootstrap assets"
+git push
 ```
 
-### 5. Create the init script symlink
+### Wire `package.json` (npm / Node.js projects only)
 
-```sh
-mkdir -p scripts
-ln -s ../.github/openspec-shared/init-change.sh scripts/init-change.sh
-```
-
-### 6. Wire `package.json` (npm / Node.js projects only)
-
-Add a convenience script so contributors can run the tool without remembering the path:
+Add a convenience script so contributors can scaffold changes without remembering the path:
 
 ```json
 {
@@ -85,21 +103,11 @@ Add a convenience script so contributors can run the tool without remembering th
 }
 ```
 
-### 7. Commit everything
-
-```sh
-git add .gitmodules .github/openspec-shared .github/skills openspec/templates openspec/config.yaml openspec/schemas scripts/init-change.sh package.json
-git commit -m "chore: add openspec-shared submodule and symlinks"
-git push
-```
-
 ---
 
 ## Usage
 
 ### Scaffold a new change
-
-Positional arguments:
 
 ```sh
 sh scripts/init-change.sh <change-name> [capability-name]
@@ -123,7 +131,10 @@ npm run opsx:init-change -- add-dark-mode
 This runs `openspec new change <change-name>` then copies all four templates into
 `openspec/changes/<change-name>/specs/<capability-name>/`.
 
-Before starting implementation for that change, check out the repository's default branch and pull the latest remote state so the feature branch starts from current history. The expected sequence is `git checkout <default-branch>`, `git pull --ff-only`, then create the feature branch.
+Before starting implementation for that change, check out the repository's default branch
+and pull the latest remote state so the feature branch starts from current history. The
+expected sequence is `git checkout <default-branch>`, `git pull --ff-only`, then create
+the feature branch.
 
 The shared workflow expects local cleanup after merge and archive: archive the completed
 change under `openspec/changes/archive/`, then prune merged local branches and stale
@@ -131,16 +142,21 @@ remote-tracking refs to keep the repository clean.
 
 ---
 
-## Keeping the Submodule Up to Date
+## Refreshing After a Submodule Update
 
-Pull the latest shared content and pin your project to the new commit:
+After bumping the submodule to a newer commit, re-run bootstrap to refresh all links:
 
 ```sh
 git submodule update --remote .github/openspec-shared
 git add .github/openspec-shared
 git commit -m "chore: bump openspec-shared to latest"
 git push
+
+# Refresh symlinks in the downstream repo
+sh .github/openspec-shared/bootstrap.sh
 ```
+
+If you used copy mode, add `--copy` to the final command.
 
 ---
 
@@ -156,6 +172,12 @@ If you already cloned without `--recurse-submodules`, initialise manually:
 
 ```sh
 git submodule update --init
+```
+
+After initialising, run bootstrap to ensure all links are in place:
+
+```sh
+sh .github/openspec-shared/bootstrap.sh
 ```
 
 ---

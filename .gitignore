@@ -3,3 +3,5 @@
 .remember/
 
 .codacy/
+
+.claude/settings.local.json
