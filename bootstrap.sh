@@ -89,6 +89,11 @@ link_or_copy() {
   abs_src="$SUBMODULE_PATH/$src_rel"
   rel_target="${prefix}${SUBMODULE_PATH}/${src_rel}"
 
+  # Skip silently if the source does not exist in the submodule
+  if [ ! -e "$abs_src" ]; then
+    return 0
+  fi
+
   if $COPY_MODE; then
     # Copy mode: remove existing managed link, then copy fresh
     if [ -L "$dest" ]; then
