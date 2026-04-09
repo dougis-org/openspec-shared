@@ -95,11 +95,14 @@ link_or_copy() {
   fi
 
   if $COPY_MODE; then
-    # Copy mode: remove existing managed link, then copy fresh
+    # Copy mode: remove existing managed content, then copy fresh
     if [ -L "$dest" ]; then
       rm "$dest"
+    elif [ -d "$dest" ]; then
+      # Directory from a prior copy-mode run — refresh it
+      rm -rf "$dest"
     elif [ -e "$dest" ]; then
-      echo "error: '$dest' exists and is not a symlink — remove it manually to allow bootstrap to copy here." >&2
+      echo "error: '$dest' exists and is not a directory or symlink — remove it manually to allow bootstrap to copy here." >&2
       exit 1
     fi
     echo "  copy  $dest  ←  $abs_src"
@@ -128,7 +131,6 @@ echo "==> Wiring agent surfaces"
 
 # .codex/
 link_or_copy ".codex/skills"    ".codex/skills"
-link_or_copy ".codex/commands"  ".codex/commands"
 
 # .claude/
 link_or_copy ".claude/skills"    ".claude/skills"
@@ -138,10 +140,9 @@ link_or_copy ".claude/commands"  ".claude/commands"
 link_or_copy ".gemini/skills"    ".gemini/skills"
 link_or_copy ".gemini/commands"  ".gemini/commands"
 
-# .github/
+# .github/ — agent surfaces only; workflows are downstream-repo-owned
 link_or_copy ".github/skills"    ".github/skills"
 link_or_copy ".github/prompts"   ".github/prompts"
-link_or_copy ".github/workflows" ".github/workflows"
 
 echo "==> Wiring openspec assets"
 
