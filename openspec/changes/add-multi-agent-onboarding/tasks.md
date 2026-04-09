@@ -47,7 +47,7 @@ Use the project's documented commands for each of the above (see project README 
 
 ## PR and Merge
 
-- [ ] Run the required pre-PR self-review from `skills/openspec-apply-change/SKILL.md` before committing
+- [x] Run the required pre-PR self-review from `skills/openspec-apply-change/SKILL.md` before committing
 - [ ] Commit all changes to the working branch and push to remote
 - [ ] Open PR from working branch to `<default-branch>`
 - [ ] Wait for 120 seconds for the Agentic reviewers to post their comments
