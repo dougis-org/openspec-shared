@@ -95,15 +95,12 @@ link_or_copy() {
   fi
 
   if $COPY_MODE; then
-    # Copy mode: remove existing managed content, then copy fresh
-    if [ -L "$dest" ]; then
-      rm "$dest"
-    elif [ -d "$dest" ]; then
-      # Directory from a prior copy-mode run — refresh it
+    # Copy mode: remove existing content (symlink, directory, or file) then copy fresh.
+    # Re-running bootstrap in copy mode is an explicit refresh; all managed paths are replaced.
+    if [ -L "$dest" ] || [ -d "$dest" ]; then
       rm -rf "$dest"
     elif [ -e "$dest" ]; then
-      echo "error: '$dest' exists and is not a directory or symlink — remove it manually to allow bootstrap to copy here." >&2
-      exit 1
+      rm "$dest"
     fi
     echo "  copy  $dest  ←  $abs_src"
     if [ -d "$abs_src" ]; then
