@@ -47,6 +47,11 @@ The user's request may include:
 
    **If the input is clear but not a GitHub issue reference:**
 
+   Treat the user's request as the basis for the change. If they already provided a kebab-case change name, use it directly. Otherwise, derive a concise kebab-case change name from their description (for example, `add-user-auth`).
+
+   Use the user's description as the basis for the change description. Do not ask a clarifying question unless the request is still ambiguous or missing key details needed to understand the change.
+   **If the input is clear but not a GitHub issue reference:**
+
    Treat the user's request as the basis for the change. If they already provided a kebab-case change name, use it directly. Otherwise, derive a concise kebab-case change name from their description (for example, `add-user-auth`). Use the user's description as the change description. Do not ask a clarifying question unless the request is still ambiguous or missing key details needed to understand the change.
 
    **If no clear input is provided:**
