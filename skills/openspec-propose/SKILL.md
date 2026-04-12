@@ -26,11 +26,26 @@ Before starting implementation work, you must check out the default branch and p
 
 ## Input
 
-The user's request should include either a kebab-case change name or a description of what they want to build.
+The user's request may include:
+
+- A kebab-case change name or a description of what they want to build
+- A GitHub issue reference: a bare number (`123`), `#N`, a full issue URL, or `OWNER/REPO#N` — in which case the issue is fetched and used as the basis for the change
 
 ## Steps
 
-1. **If no clear input is provided, ask what they want to build**
+1. **Detect GitHub issue reference or ask what to build**
+
+   Check whether the input looks like a GitHub issue reference: a bare integer (`123`), `#N`, a URL containing `/issues/N`, or `OWNER/REPO#N`.
+
+   **If it is a GitHub issue reference:**
+
+   Fetch the issue:
+   ```bash
+   gh issue view <ref> --json title,body,comments
+   ```
+   Use the issue title as the basis for the kebab-case change name (e.g. `add-user-auth`) and the issue title + body as the change description. Record the issue reference — it will be used in Step 2 without prompting.
+
+   **If no clear input is provided:**
 
    Use the **AskUserQuestion tool** with an open-ended prompt such as:
 
@@ -42,7 +57,9 @@ The user's request should include either a kebab-case change name or a descripti
 
 2. **Collect GitHub issue references** *(unconditional)*
 
-   Always ask, regardless of whether the user provided a clear description upfront:
+   If a GitHub issue reference was already detected and recorded in Step 1, skip prompting and use that reference directly.
+
+   Otherwise, always ask:
 
    > Is this change driven by one or more GitHub issues? If so, share the issue numbers or URLs (e.g. `#42`, `myorg/repo#7`). Leave blank if not issue-driven.
 

@@ -180,13 +180,16 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
      Closes myorg/repo#7
      ```
      If there are no issue references, omit this block entirely.
+   - **REQUIRED:** If `proposal.md` lists any GitHub issue references, the PR body MUST include the closing-keywords block. Never open a PR against an issue-driven change without it.
    - Open a PR from the working branch to the default branch. Include the closing-keywords block at the end of the PR body so GitHub automatically closes the linked issues on merge.
    - Announce the PR URL
    - **Wait 3 minutes** before doing anything else — this gives CI time to start and reviewers time to leave early comments
+   - Enable auto-merge on the PR: `gh pr merge <PR-URL> --auto --merge`
+   - Announce that auto-merge has been enabled — the PR will merge automatically once all required checks pass and no blocking reviews remain
 
-10. **PR review and CI loop** *(iterate until the PR is fully clean)*
+10. **PR review and CI loop** *(iterate until the PR merges)*
 
-   Repeat the following cycle until **all CI checks are green AND there are zero open review comments**:
+   Repeat the following cycle until the PR is detected as merged. Do not wait for a human to report the merge or to flag new comments — poll for both autonomously after each iteration.
 
    **10a. Assess current state**
 
@@ -206,27 +209,19 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    Once all fixes and replies are ready, **commit everything and push once**. Batching into a single push minimises unnecessary CI runs and wait time.
 
-   After pushing, **wait 1 minute** to let CI re-trigger and allow addressed threads to auto-resolve.
+   After pushing, **wait 3 minutes** to let CI re-trigger and allow addressed threads to auto-resolve.
 
-   After the 1-minute wait, re-run the GraphQL query from 10a; for any thread you addressed that still shows `isResolved: false`, resolve it explicitly:
+   After the 3-minute wait, re-run the GraphQL query from 10a; for any thread you addressed that still shows `isResolved: false`, resolve it explicitly:
 
    Run this via: `gh api graphql -f query='mutation { resolveReviewThread(input: { threadId: "<thread-id>" }) { thread { id isResolved } } }'`
 
    Return to 10a.
 
-   **10c. Exit condition**
+   **10c. Poll for merge**
 
-   When `gh pr checks` shows all checks passing **and** the GraphQL query returns zero threads with `isResolved: false` across all pages, exit the loop and proceed to step 11.
+   After each iteration, poll: `gh pr view <PR-URL> --json state,mergedAt`. When `state` is `MERGED`, exit the loop and proceed to post-merge steps. Do not wait for a human to report the merge — detect it autonomously. If not yet merged, return to 10a.
 
-11. **Enable auto-merge**
-
-    Only reached when **all CI checks are green and all review threads are resolved**:
-
-    - Enable auto-merge on the PR: `gh pr merge <PR-URL> --auto --merge`
-    - Announce that auto-merge has been enabled
-    - **Never force-merge** — wait for the merge to complete naturally, or continue if a human force-merges
-
-12. **Post-merge steps** *(after PR merges)*
+11. **Post-merge steps** *(after PR merges)*
 
     - `git checkout <default-branch>` and `git pull --ff-only`
     - Verify the merged changes appear on the default branch
@@ -299,6 +294,8 @@ Pre-PR review complete — proceeding to commit.
 ```text
 ## PR Review Loop — <PR-URL>
 
+Auto-merge: enabled ✓
+
 **CI checks:** 2 passing, 1 failing (build)
 **Open threads:** 1 unresolved
 
@@ -307,7 +304,7 @@ Pre-PR review complete — proceeding to commit.
   Thread: "<comment body>" — change implemented — fix ready
 
 → All fixes batched — committing and pushing once
-  Waiting 1 minute for CI to re-trigger and comments to auto-resolve...
+  Waiting 3 minutes for CI to re-trigger and comments to auto-resolve...
 
 → Re-checking state after wait
   Thread "<comment body>" still open — resolving via GraphQL resolveReviewThread
@@ -316,7 +313,7 @@ Pre-PR review complete — proceeding to commit.
 **CI checks:** 3 passing ✓
 **Open threads:** 0 ✓
 
-→ All checks green and no open threads — enabling auto-merge
+→ Polling for merge... PR state: MERGED ✓
 ```
 
 ## Output After Post-Merge
@@ -356,6 +353,7 @@ What would you like to do?
 
 - Keep going through tasks until done or blocked
 - Always read context files before starting
+- If `proposal.md` lists any GitHub issue references, the PR body MUST include a `Closes #N` line for each one — never omit this
 - **Adhere strictly to the BDD/TDD process for all implementation.**
 - If a task is ambiguous, pause and ask before implementing
 - If implementation reveals issues, pause and suggest artifact updates
@@ -366,14 +364,14 @@ What would you like to do?
 - In a git repo: Step 1 is always checkout default branch + pull; Step 2 is always create working branch + push to remote immediately
 - Never skip step 8 (pre-PR self-review); the review sub-agent only reports — the main agent applies fixes and re-runs tests before committing
 - After all tasks are locally complete, validated, and the pre-PR review is done, always commit + push + open PR before declaring done
-- After opening a PR, always wait 3 minutes before inspecting comments or checks
-- After every push, always wait 1 minute before re-assessing — lets CI re-trigger and auto-resolve stale comment threads
-- If a review thread you addressed is still open after the 1-minute wait, resolve it explicitly via the GitHub GraphQL `resolveReviewThread` mutation — never leave addressed threads dangling
+- After opening a PR, always wait 3 minutes before inspecting comments or checks, then immediately enable auto-merge
+- After every push, always wait 3 minutes before re-assessing — lets CI re-trigger and auto-resolve stale comment threads
+- If a review thread you addressed is still open after the 3-minute wait, resolve it explicitly via the GitHub GraphQL `resolveReviewThread` mutation — never leave addressed threads dangling
 - Always paginate review thread queries when `pageInfo.hasNextPage` is `true` — never assume 100 threads is sufficient without checking
 - In each loop iteration, fix all CI failures and address all open review comments before pushing — never push after fixing just one issue; batch all fixes into a single commit+push to minimise CI runs
-- Never enable auto-merge until **both** conditions are simultaneously true: all CI checks green **and** zero open review threads (across all pages)
-- Monitor comments and CI in a single unified loop (step 10); iterate until both exit conditions are met, then and only then enable auto-merge
-- Never force-merge; enable auto-merge and wait
+- Enable auto-merge immediately after the initial 3-minute wait — do not defer it until the loop is clean
+- Monitor comments and CI in a single unified loop (step 10); after each iteration poll `gh pr view --json state` autonomously — never wait for a human to report new comments or that the PR has merged
+- Never force-merge; enable auto-merge and let GitHub merge when conditions are met
 - Post-merge archive must be a single atomic commit: copy to archive location and delete original path must be staged together, never split across two commits
 
 ## Fluid Workflow Integration
