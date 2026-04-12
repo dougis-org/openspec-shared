@@ -40,13 +40,13 @@ Use the project's documented commands for each of the above (see project README 
 - [ ] Run the required pre-PR self-review from `skills/openspec-apply-change/SKILL.md` before committing
 - [ ] Commit all changes to the working branch and push to remote
 - [ ] Open PR from working branch to `<default-branch>`
-- [ ] Wait for 120 seconds for the Agentic reviewers to post their comments
-- [ ] **Monitor PR comments** — when comments appear, address them, commit fixes, follow all steps in [Remote push validation] then push to the same working branch; repeat until no unresolved comments remain
-- [ ] Enable auto-merge once no blocking review comments remain
-- [ ] **Monitor CI checks** — when any CI check fails, diagnose and fix the failure, commit fixes, follow all steps in [Remote push validation] then push to the same working branch; repeat until all checks pass
-- [ ] Wait for the PR to merge — **never force-merge**; if a human force-merges, continue to Post-Merge
+- [ ] Wait 180 seconds for CI to start and agentic reviewers to post their comments
+- [ ] Enable auto-merge: `gh pr merge <PR-URL> --auto --merge`
+- [ ] **Monitor PR comments** — poll for new comments autonomously; when comments appear, address them, commit fixes, follow all steps in [Remote push validation] then push to the same working branch; wait 180 seconds then repeat until no unresolved comments remain
+- [ ] **Monitor CI checks** — poll for check status autonomously; when any CI check fails, diagnose and fix the failure, commit fixes, follow all steps in [Remote push validation] then push to the same working branch; wait 180 seconds then repeat until all checks pass
+- [ ] **Poll for merge** — after each iteration run `gh pr view <PR-URL> --json state`; when `state` is `MERGED` proceed to Post-Merge; if `CLOSED` exit and notify the user — **never wait for a human to report the merge**; **never force-merge**
 
-The comment and CI resolution loops are iterative: address → validate locally → push → sleep for 120 seconds → re-check → repeat until the PR is fully clean. If a human force-merges before the PR is clean, proceed directly to Post-Merge steps.
+The comment and CI resolution loops are iterative: address → validate locally → push → wait 180 seconds → re-check → poll for merge → repeat until the PR merges.
 
 Ownership metadata:
 
