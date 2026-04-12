@@ -215,11 +215,16 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    Run this via: `gh api graphql -f query='mutation { resolveReviewThread(input: { threadId: "<thread-id>" }) { thread { id isResolved } } }'`
 
-   Return to 10a.
+   Proceed to 10c.
 
    **10c. Poll for merge**
 
-   After each iteration, poll: `gh pr view <PR-URL> --json state,mergedAt`. When `state` is `MERGED`, exit the loop and proceed to post-merge steps. Do not wait for a human to report the merge — detect it autonomously. If not yet merged, return to 10a.
+   After each iteration, poll: `gh pr view <PR-URL> --json state,mergedAt`.
+   - `MERGED` — exit the loop and proceed to post-merge steps
+   - `CLOSED` — exit the loop and notify the user that the PR was closed without merging; do not proceed to post-merge steps
+   - `OPEN` — return to 10a
+
+   Do not wait for a human to report the merge or closure — detect it autonomously.
 
 11. **Post-merge steps** *(after PR merges)*
 

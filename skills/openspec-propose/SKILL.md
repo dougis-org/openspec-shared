@@ -45,6 +45,10 @@ The user's request may include:
    ```
    Use the issue title as the basis for the kebab-case change name (e.g. `add-user-auth`) and the issue title + body as the change description. Record the issue reference — it will be used in Step 2 without prompting.
 
+   **If the input is clear but not a GitHub issue reference:**
+
+   Treat the user's request as the basis for the change. If they already provided a kebab-case change name, use it directly. Otherwise, derive a concise kebab-case change name from their description (for example, `add-user-auth`). Use the user's description as the change description. Do not ask a clarifying question unless the request is still ambiguous or missing key details needed to understand the change.
+
    **If no clear input is provided:**
 
    Use the **AskUserQuestion tool** with an open-ended prompt such as:
