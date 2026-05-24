@@ -39,6 +39,11 @@ The user's request may include:
 
    **If it is a GitHub issue reference:**
 
+   Assign the issue to the current user:
+   ```bash
+   gh issue assign <ref> --me
+   ```
+
    Fetch the issue:
    ```bash
    gh issue view <ref> --json title,body,comments

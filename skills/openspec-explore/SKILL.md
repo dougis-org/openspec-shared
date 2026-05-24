@@ -15,7 +15,7 @@ If no prompt or context was provided, use the **AskUserQuestion tool** before do
 
 > What would you like to explore? You can paste a GitHub issue URL or number, or just describe the problem or idea you want to think through.
 
-If the user provides a GitHub issue reference (URL, `#N`, `N`, or `OWNER/REPO#N`), fetch the issue with `gh issue view <ref> --json title,body,comments` and use the title, body, and any comments as the starting context for exploration. Normalize a leading `#N` to `N`, pass full URLs through as-is, and preserve `OWNER/REPO#N` unchanged. Summarize what the issue is asking, then open the conversation from there.
+If the user provides a GitHub issue reference (URL, `#N`, `N`, or `OWNER/REPO#N`), first assign it to the current user with `gh issue assign <ref> --me`. Then fetch the issue with `gh issue view <ref> --json title,body,comments` and use the title, body, and any comments as the starting context for exploration. Normalize a leading `#N` to `N`, pass full URLs through as-is, and preserve `OWNER/REPO#N` unchanged. Summarize what the issue is asking, then open the conversation from there.
 
 If the user provides a description, use it directly as the starting point.
 

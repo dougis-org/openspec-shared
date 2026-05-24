@@ -123,49 +123,15 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - If all done, proceed to step 8
    - If paused, explain why and wait for guidance
 
-8. **Pre-PR self-review** *(before committing)*
+8. **Pre-Commit Code Review** *(before every commit)*
 
-   Before committing, spawn a sub-agent with a code reviewer persona to review all changes as if they were already in a pull request. The goal is to catch complexity, duplication, and quality issues before any code is committed.
+   Before committing, you MUST spawn a dedicated sub-agent to run the `openspec-review-code` skill.
 
    **Launch the sub-agent:**
-
-   Use the Agent tool with the following prompt (fill in `<default-branch>`):
-
-   > You are a senior code reviewer performing a pre-merge review. Your job is to review the staged and unstaged changes in this repository as if they had just been submitted in a pull request.
-   >
-   > Run `git diff <default-branch>...HEAD` (and `git diff HEAD` for unstaged changes) to see all changes introduced by the feature branch.
-   >
-   > Review the diff with the following goals — **only report issues you are confident about**:
-   >
-   > 1. **Reduce complexity** — identify logic or structure that is needlessly complex and suggest a simpler equivalent.
-   > 2. **Eliminate duplication** — spot repeated logic or structure that could be consolidated.
-   > 3. **Improve quality** — flag naming that is unclear, instructions or logic that are ambiguous or contradictory, or anything likely to confuse a future reader.
-   >
-   > Do **not** suggest adding comments, docstrings, type annotations, or test coverage for code that is not part of the diff. Do **not** propose speculative abstractions or features beyond what the diff introduces.
-   >
-   > Return a structured review report in this exact format, writing "None" under any section with no findings:
-   >
-   > ```
-   > ## Pre-PR Review Report
-   >
-   > ### Complexity Issues
-   > - <file>:<line> — <description> — Suggested fix: <concise fix>
-   >
-   > ### Duplication Issues
-   > - <file>:<line> — <description> — Suggested fix: <concise fix>
-   >
-   > ### Quality Issues
-   > - <file>:<line> — <description> — Suggested fix: <concise fix>
-   > ```
+   Use the Agent tool and instruct it to: "Run the openspec-review-code skill".
 
    **Act on the review:**
-
-   Read the sub-agent's report. For each issue:
-
-   - If the fix is clearly correct and within scope, apply it immediately.
-   - If the fix is ambiguous or out of scope, skip it and note it in the commit message or PR description.
-
-   After applying accepted fixes, re-run all tests to confirm they still pass before continuing to step 9.
+   Read the sub-agent's report. Apply all fixes that are clearly correct and within scope before committing. After applying fixes, re-run all tests to confirm they pass.
 
 9. **Commit and open PR** *(when all tasks complete)*
 
@@ -183,9 +149,9 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - **REQUIRED:** If `proposal.md` lists any GitHub issue references, the PR body MUST include the closing-keywords block. Never open a PR against an issue-driven change without it.
    - Open a PR from the working branch to the default branch. Include the closing-keywords block at the end of the PR body so GitHub automatically closes the linked issues on merge.
    - Announce the PR URL
+   - **Immediately** enable auto-merge on the PR: `gh pr merge <PR-URL> --auto --merge`. **NEVER** use `--admin` to force the merge.
+   - Announce that auto-merge has been enabled — the PR will merge automatically once all required checks pass and no blocking reviews remain. You must ensure all PR comments are addressed and threads are resolved to allow the process to progress.
    - **Wait 3 minutes** before doing anything else — this gives CI time to start and reviewers time to leave early comments
-   - Enable auto-merge on the PR: `gh pr merge <PR-URL> --auto --merge`
-   - Announce that auto-merge has been enabled — the PR will merge automatically once all required checks pass and no blocking reviews remain
 
 10. **PR review and CI loop** *(iterate until the PR merges)*
 
@@ -195,16 +161,16 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    Run both checks in parallel:
 
-   - `gh pr checks <PR-URL>` — list all CI check statuses
+   - `gh pr checks <PR-URL> --json isRequired,state,name` — list all CI check statuses
    - `gh api graphql -f query='{ repository(owner:"<owner>", name:"<repo>") { pullRequest(number:<num>) { reviewThreads(first:100) { pageInfo { hasNextPage endCursor } nodes { id isResolved comments(last:1) { nodes { body author { login } createdAt } } } } } } }'` — list all review threads with their resolved status and latest comment
 
-   If `pageInfo.hasNextPage` is `true`, paginate using `after:"<endCursor>"` until all threads are fetched. In practice, PRs rarely exceed 100 threads; if one does, retrieve all pages before proceeding.
+   If `pageInfo.hasNextPage` is `true`, paginate using `after:"<endCursor>"` until all threads are fetched.
 
-   **10b. Address all open issues** *(CI failures and review comments together)*
+   **10b. Address all open issues** *(blocking CI failures and review comments together)*
 
    Gather every problem in one pass:
 
-   - For each **failing CI check**: read the failure output (`gh run view <run-id> --log-failed`), diagnose, and fix in code.
+   - For each **failing REQUIRED CI check** (`isRequired: true` and `state: "FAILING"`): read the failure output (`gh run view <run-id> --log-failed`), diagnose, and fix in code. Ignore failing checks that are not required.
    - For each **unresolved review thread**: read the latest comment body, and either implement the requested change or draft a polite reply if the request is unclear or out of scope.
 
    Once all fixes and replies are ready, **commit everything and push once**. Batching into a single push minimises unnecessary CI runs and wait time.
@@ -267,7 +233,7 @@ Working on task 4/7: <task description>
 - [x] Task 2
 ...
 
-All tasks complete. Running pre-PR self-review before committing.
+All tasks complete. Running pre-commit review before committing.
 ```
 
 ## Output During Pre-PR Review
@@ -367,16 +333,15 @@ What would you like to do?
 - Pause on errors, blockers, or unclear requirements; do not guess
 - Use `contextFiles` from CLI output and do not assume specific file names
 - In a git repo: Step 1 is always checkout default branch + pull; Step 2 is always create working branch + push to remote immediately
-- Never skip step 8 (pre-PR self-review); the review sub-agent only reports — the main agent applies fixes and re-runs tests before committing
-- After all tasks are locally complete, validated, and the pre-PR review is done, always commit + push + open PR before declaring done
-- After opening a PR, always wait 3 minutes before inspecting comments or checks, then immediately enable auto-merge
+- Never skip step 8 (pre-commit code review); you MUST spawn a sub-agent to run the `openspec-review-code` skill before every commit.
+- After all tasks are locally complete, validated, and the pre-commit review is done, always commit + push + open PR before declaring done
+- After opening a PR, immediately enable auto-merge, THEN wait 3 minutes before inspecting comments or checks.
 - After every push, always wait 3 minutes before re-assessing — lets CI re-trigger and auto-resolve stale comment threads
 - If a review thread you addressed is still open after the 3-minute wait, resolve it explicitly via the GitHub GraphQL `resolveReviewThread` mutation — never leave addressed threads dangling
 - Always paginate review thread queries when `pageInfo.hasNextPage` is `true` — never assume 100 threads is sufficient without checking
-- In each loop iteration, fix all CI failures and address all open review comments before pushing — never push after fixing just one issue; batch all fixes into a single commit+push to minimise CI runs
-- Enable auto-merge immediately after the initial 3-minute wait — do not defer it until the loop is clean
+- In each loop iteration, fix all **required** CI failures and address all open review comments before pushing. Do not exit the loop while any required checks fail or threads are unresolved.
 - Monitor comments and CI in a single unified loop (step 10); after each iteration poll `gh pr view --json state` autonomously — never wait for a human to report new comments or that the PR has merged
-- Never force-merge; enable auto-merge and let GitHub merge when conditions are met
+- Never force-merge using `--admin`; enable auto-merge immediately upon PR creation and let GitHub merge when all comments are addressed and threads are resolved.
 - Post-merge archive must be a single atomic commit: copy to archive location and delete original path must be staged together, never split across two commits
 
 ## Fluid Workflow Integration
