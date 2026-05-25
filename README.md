@@ -12,7 +12,7 @@ used across all dougis-org projects.
 | ---- | ------- |
 | `config.yaml` | OpenSpec workflow configuration |
 | `templates/` | Proposal, design, spec, and tasks templates |
-| `skills/` | Four OpenSpec agent skills (VS Code Copilot / GitHub Copilot) |
+| `skills/` | Five OpenSpec agent skills (VS Code Copilot / GitHub Copilot) |
 | `init-change.sh` | POSIX shell script to scaffold a new change |
 | `bootstrap.sh` | Bootstrap script — wires shared assets into a downstream repo |
 
@@ -189,4 +189,5 @@ sh .github/openspec-shared/bootstrap.sh
 | `openspec-propose` | Quickly describe what to build and get a full proposal |
 | `openspec-explore` | Think through an idea before or during a change |
 | `openspec-apply-change` | Implement tasks from an approved change |
+| `openspec-review-code` | Pre-commit code review for duplication, complexity, and quality (spawned as sub-agent) |
 | `openspec-archive-change` | Finalize and archive a completed change |
