@@ -82,12 +82,33 @@ Archive a completed change in the experimental workflow.
    mv openspec/changes/<name> openspec/changes/archive/YYYY-MM-DD-<name>
    ```
 
-6. **Display summary**
+6. **Open a doc-branch PR for the archive**
+
+   Stage and commit all archive and spec changes, then create a `doc/` branch and open a PR — never push directly to the default branch:
+
+   ```bash
+   git checkout -b doc/archive-YYYY-MM-DD-<name>
+   git add openspec/changes/archive/YYYY-MM-DD-<name>/ openspec/specs/
+   git rm -r openspec/changes/<name>/   # stage the deletion
+   git commit -m "docs: archive <name> (YYYY-MM-DD)"
+   git push -u origin doc/archive-YYYY-MM-DD-<name>
+   gh pr create \
+     --base <default-branch> \
+     --head doc/archive-YYYY-MM-DD-<name> \
+     --title "docs: archive <name> (YYYY-MM-DD)" \
+     --body "Archives completed change **<name>** and syncs delta specs to main specs."
+   gh pr merge <DOC-PR-URL> --auto --merge
+   ```
+
+   **IMPORTANT:** Do NOT push directly to the default branch. Always use the PR flow so contributors without direct push access can observe and act on the change.
+
+7. **Display summary**
 
    Show archive completion summary including:
    - Change name
    - Schema that was used
    - Archive location
+   - Doc-branch PR URL
    - Whether specs were synced (if applicable)
    - Note about any warnings (incomplete artifacts/tasks)
 
@@ -100,6 +121,7 @@ Archive a completed change in the experimental workflow.
 **Schema:** <schema-name>
 **Archived to:** openspec/changes/archive/YYYY-MM-DD-<name>/
 **Specs:** ✓ Synced to main specs (or "No delta specs" or "Sync skipped")
+**Doc PR:** <DOC-PR-URL> (auto-merge enabled)
 
 All artifacts complete. All tasks complete.
 ```
@@ -112,3 +134,4 @@ All artifacts complete. All tasks complete.
 - Show clear summary of what happened
 - If sync is requested, use openspec-sync-specs approach (agent-driven)
 - If delta specs exist, always run the sync assessment and show the combined summary before prompting
+- **Never push archive/spec changes directly to the default branch** — always use a `doc/archive-YYYY-MM-DD-<name>` branch with a PR set to auto-merge
