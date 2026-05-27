@@ -10,6 +10,7 @@ used across all dougis-org projects.
 
 | Path | Purpose |
 | ---- | ------- |
+| [`USAGE.md`](USAGE.md) | Comprehensive guide to the custom feedback-loop SDD workflow |
 | `config.yaml` | OpenSpec workflow configuration |
 | `templates/` | Proposal, design, spec, and tasks templates |
 | `skills/` | Five OpenSpec agent skills (VS Code Copilot / GitHub Copilot) |
@@ -106,6 +107,8 @@ Add a convenience script so contributors can scaffold changes without rememberin
 ---
 
 ## Usage
+
+For an in-depth, step-by-step walkthrough of the end-to-end spec-driven development lifecycle (including exploratory phases, pre-commit sub-agent review gates, local verification criteria, and autonomous PR auto-merge polling loops), see the comprehensive [OpenSpec Spec-Driven Development Workflow Guide](USAGE.md).
 
 ### Scaffold a new change
 

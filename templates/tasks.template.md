@@ -37,7 +37,7 @@ Use the project's documented commands for each of the above (see project README 
 
 ## PR and Merge
 
-- [ ] Run the required pre-PR self-review from `skills/openspec-apply-change/SKILL.md` before committing
+- [ ] Run the required pre-commit review from `skills/openspec-apply-change/SKILL.md` before committing, ensuring the primary agent automatically addresses all findings from the sub-agent
 - [ ] Commit all changes to the working branch and push to remote
 - [ ] Open PR from working branch to `<default-branch>`
 - [ ] Wait 180 seconds for CI to start and agentic reviewers to post their comments

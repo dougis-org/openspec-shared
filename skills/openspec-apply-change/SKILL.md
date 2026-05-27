@@ -123,15 +123,15 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - If all done, proceed to step 8
    - If paused, explain why and wait for guidance
 
-8. **Pre-Commit Code Review** *(before every commit)*
+ 8. **Pre-Commit Code Review** *(before every commit)*
 
-   Before committing, you MUST spawn a dedicated sub-agent to run the `openspec-review-code` skill.
+    Before committing, you MUST spawn a dedicated sub-agent to run the `openspec-review-code` skill.
 
-   **Launch the sub-agent:**
-   Use the Agent tool and instruct it to: "Run the openspec-review-code skill".
+    **Launch the sub-agent:**
+    Use the Agent tool and instruct it to: "Run the openspec-review-code skill".
 
-   **Act on the review:**
-   Read the sub-agent's report. Apply all fixes that are clearly correct and within scope before committing. After applying fixes, re-run all tests to confirm they pass.
+    **Act on the review:**
+    Read the sub-agent's report. The primary agent must automatically address all findings from the sub-agent's report, applying fixes for complexity, duplication, and quality issues before committing. After applying fixes, re-run all tests to confirm they pass.
 
 9. **Commit and open PR** *(when all tasks complete)*
 
@@ -333,7 +333,7 @@ What would you like to do?
 - Pause on errors, blockers, or unclear requirements; do not guess
 - Use `contextFiles` from CLI output and do not assume specific file names
 - In a git repo: Step 1 is always checkout default branch + pull; Step 2 is always create working branch + push to remote immediately
-- Never skip step 8 (pre-commit code review); you MUST spawn a sub-agent to run the `openspec-review-code` skill before every commit.
+- Never skip step 8 (pre-commit code review); you MUST spawn a sub-agent to run the `openspec-review-code` skill before every commit, and the primary agent must automatically address all findings from the sub-agent before committing.
 - After all tasks are locally complete, validated, and the pre-commit review is done, always commit + push + open PR before declaring done
 - After opening a PR, immediately enable auto-merge, THEN wait 3 minutes before inspecting comments or checks.
 - After every push, always wait 3 minutes before re-assessing — lets CI re-trigger and auto-resolve stale comment threads

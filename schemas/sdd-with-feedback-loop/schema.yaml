@@ -46,7 +46,7 @@ artifacts:
       Create task list with sections: Preparation, Execution, Pre-Commit Code Review,
       Validation, PR and Merge, and Post-Merge. Follow strict BDD/TDD.
       Include ownership metadata and a blocking resolution flow.
-      Require the `openspec-review-code` sub-agent to be run before every commit.
+      Require the `openspec-review-code` sub-agent to be run before every commit, and require the primary agent to automatically address all findings from the sub-agent before committing.
       Ensure PRs are set to auto-merge when created. All paths must be relative to project root.
     requires:
       - specs

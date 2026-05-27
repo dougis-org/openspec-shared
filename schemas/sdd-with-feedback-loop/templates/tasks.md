@@ -15,7 +15,7 @@ Suggested start-of-work commands: `git checkout <default-branch>` → `git pull 
 
 ## Pre-Commit Code Review
 
-- [ ] **Before every commit**, spawn a dedicated sub-agent to run the `openspec-review-code` skill. Review its report and apply fixes for duplication, complexity, and completeness before committing.
+- [ ] **Before every commit**, spawn a dedicated sub-agent to run the `openspec-review-code` skill. The primary agent must automatically address all findings from the sub-agent's report, applying fixes for complexity, duplication, and quality issues before committing.
 
 ## Validation
 
@@ -41,7 +41,7 @@ Use the project's documented commands for each of the above (see project README 
 
 ## PR and Merge
 
-- [ ] Ensure the `openspec-review-code` sub-agent was run before the final commit
+- [ ] Ensure the `openspec-review-code` sub-agent was run and all findings were automatically addressed before the final commit
 - [ ] Commit all changes to the working branch and push to remote
 - [ ] Open PR from working branch to `<default-branch>`. **If this change is issue-driven, the PR body MUST explicitly state "Closes #N" for each issue.**
 - [ ] **IMMEDIATELY** enable auto-merge: `gh pr merge <PR-URL> --auto --merge` (NEVER use `--admin` to force the merge)
