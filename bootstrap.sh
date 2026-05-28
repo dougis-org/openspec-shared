@@ -8,12 +8,12 @@
 # Options:
 #   --copy    Copy assets instead of creating symlinks (useful when symlinks are unavailable)
 #
-# Supported agent surfaces (default): .codex/  .claude/  .gemini/  .github/
+# Supported agent surfaces (default): .agents/  .codex/  .claude/  .gemini/  .github/
 # Experimental surface (.agent/) is NOT wired by default.
 #
 # The script is idempotent: re-running it after a submodule bump refreshes all links.
 # Existing symlinks at managed paths are replaced. Plain files or directories that the
-# script did not create will cause the script to fail rather than overwrite silently.
+# script did not create will trigger an automatic fallback to copy mode with a warning.
 
 set -e
 
@@ -114,8 +114,17 @@ link_or_copy() {
       # Existing symlink — replace (idempotent refresh)
       rm "$dest"
     elif [ -e "$dest" ]; then
-      echo "error: '$dest' exists and is not a symlink — remove it manually to allow bootstrap to link here." >&2
-      exit 1
+      # Destination is a real file or directory (not a symlink).
+      # Fall back to copy mode automatically rather than aborting.
+      echo "  warn  '$dest' exists and is not a symlink — falling back to copy mode for this path" >&2
+      rm -rf "$dest"
+      echo "  copy  $dest  ←  $abs_src (fallback)"
+      if [ -d "$abs_src" ]; then
+        cp -r "$abs_src" "$dest"
+      else
+        cp "$abs_src" "$dest"
+      fi
+      return 0
     fi
     echo "  link  $dest  ->  $rel_target"
     ln -s "$rel_target" "$dest"
@@ -127,18 +136,21 @@ link_or_copy() {
 echo "==> Wiring agent surfaces"
 
 # .codex/
-link_or_copy ".codex/skills"    ".codex/skills"
+link_or_copy "skills"            ".codex/skills"
 
 # .claude/
-link_or_copy ".claude/skills"    ".claude/skills"
+link_or_copy "skills"            ".claude/skills"
 link_or_copy ".claude/commands"  ".claude/commands"
 
 # .gemini/
-link_or_copy ".gemini/skills"    ".gemini/skills"
+link_or_copy "skills"            ".gemini/skills"
 link_or_copy ".gemini/commands"  ".gemini/commands"
 
+# .agents/ — Antigravity IDE surface
+link_or_copy "skills"            ".agents/skills"
+
 # .github/ — agent surfaces only; workflows are downstream-repo-owned
-link_or_copy ".github/skills"    ".github/skills"
+link_or_copy "skills"            ".github/skills"
 link_or_copy ".github/prompts"   ".github/prompts"
 
 echo "==> Wiring openspec assets"

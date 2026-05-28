@@ -16,6 +16,7 @@ used across all dougis-org projects.
 | `skills/` | Five OpenSpec agent skills (VS Code Copilot / GitHub Copilot) |
 | `init-change.sh` | POSIX shell script to scaffold a new change |
 | `bootstrap.sh` | Bootstrap script — wires shared assets into a downstream repo |
+| `update.sh` | One-command update — pulls latest submodule, commits the bump, and refreshes all links |
 
 ---
 
@@ -147,7 +148,33 @@ remote-tracking refs to keep the repository clean.
 
 ## Refreshing After a Submodule Update
 
-After bumping the submodule to a newer commit, re-run bootstrap to refresh all links:
+Run the bundled update script from the root of your downstream repo:
+
+```sh
+sh .github/openspec-shared/update.sh
+```
+
+This single command:
+1. Pulls the latest `openspec-shared` commit from the remote
+2. Stages and commits the submodule pointer bump (`chore: bump openspec-shared to latest`)
+3. Re-runs `bootstrap.sh` to refresh all symlinks (or copies)
+
+Then push when ready:
+
+```sh
+git push
+```
+
+#### Options
+
+| Flag | Effect |
+| ---- | ------ |
+| `--copy` | Pass through to bootstrap — copy assets instead of symlinks |
+| `--no-commit` | Refresh links without creating a git commit (stage/commit manually) |
+
+#### Manual alternative
+
+If you prefer to control each step yourself:
 
 ```sh
 git submodule update --remote .github/openspec-shared
@@ -155,11 +182,9 @@ git add .github/openspec-shared
 git commit -m "chore: bump openspec-shared to latest"
 git push
 
-# Refresh symlinks in the downstream repo
+# Refresh symlinks / copies
 sh .github/openspec-shared/bootstrap.sh
 ```
-
-If you used copy mode, add `--copy` to the final command.
 
 ---
 
