@@ -3,8 +3,8 @@ name: get-next-project-issue
 description: Find the next logical unblocked GitHub issue to work on for a tracked project. Syncs to main, discovers project docs, evaluates current issue states against GitHub, updates the docs on a branch, cuts a doc PR set to auto-merge, monitors it to completion, then presents the next issue to action.
 license: MIT
 metadata:
-  author: session-combat
-  version: "1.0"
+  author: ai-agent-setup
+  version: "1.1"
 ---
 
 # Get Next Project Issue
@@ -42,8 +42,12 @@ GitHub issue numbers (pattern: `#\d+` or `github.com/.*/issues/\d+`).
 Run the scan efficiently using a single command, for example:
 
 ```bash
-find docs/ -name "README.md" | xargs grep -l "issues/" 2>/dev/null
+find docs/ -name "README.md" -print0 | xargs -0 grep -E -l "issues/|#[0-9]+" 2>/dev/null
 ```
+
+`-print0` / `-0` handles directory or file names containing spaces correctly.
+The `-E` pattern matches both full GitHub issue URLs (`issues/123`) and
+shorthand references (`#123`).
 
 Also check one level up for a potential `docs/projects/` grouping pattern in
 case projects are nested under an intermediate parent directory.
@@ -54,8 +58,10 @@ Collect every qualifying folder path.
 
 ### Step 3 — Ask the user to select a project
 
-Use the **AskUserQuestion tool** to present the list of discovered project
-folders as options.
+Present the list of discovered project folders to the user and ask them to
+select one. Use whatever mechanism the agent runtime provides for interactive
+selection (e.g., a tool call, a numbered list in a message, or a follow-up
+prompt). Wait for the user's response before proceeding.
 
 - Label each option by its folder name (and the title from its `README.md` if
   easy to extract, e.g. the first `# Heading`).
@@ -75,18 +81,18 @@ For the selected project folder:
 2. **Extract every GitHub issue number** referenced across all those files.
    Deduplicate the list.
 
-3. **Fetch the current state of every issue** from GitHub in a single batched
-   pass. Use the GitHub CLI efficiently — fetch in parallel where possible:
+3. **Fetch the current state of every issue** from GitHub in a single API
+   call, then filter locally to the issue numbers extracted from the docs:
 
    ```bash
-   for n in <issue numbers>; do
-     gh issue view $n --repo <owner>/<repo> \
-       --json number,title,state,labels 2>/dev/null &
-   done
-   wait
+   gh issue list --repo <owner>/<repo> --limit 1000 \
+     --json number,title,state,labels
    ```
 
-   Record `number`, `title`, and `state` (`OPEN` / `CLOSED`) for each issue.
+   Filter the returned JSON to only the numbers extracted in step 2.
+   Record `number`, `title`, and `state` (`OPEN` / `CLOSED`) for each.
+   Using a single list call avoids the rate-limiting and process-spawn
+   overhead that comes from running one `gh issue view` per issue.
 
 4. **Determine completion status** for each phase / section:
    - All sub-issues CLOSED → phase complete
@@ -99,7 +105,7 @@ For the selected project folder:
 
 ### Step 5 — Ask about in-flight work
 
-Use the **AskUserQuestion tool** to ask:
+Ask the user (via a message or follow-up prompt):
 
 > Are any of the open issues currently being worked on (e.g., on a feature
 > branch or open PR)? If yes, which issue numbers?
@@ -128,14 +134,14 @@ doc/status-update-<project-folder>-<YYYY-MM-DD>
 For example: `doc/status-update-multi-user-campaigns-2026-06-07`
 
 ```bash
-git checkout -b doc/status-update-<project>-<date>
+git checkout -b doc/status-update-<project-folder>-$(date +%Y-%m-%d)
 ```
 
 ---
 
 ### Step 7 — Update project documents
 
-Apply the same documentation update pattern used in this session:
+Apply the following documentation update pattern consistently across all project docs:
 
 **README.md updates:**
 - Update the `> Status:` header line with today's date and an accurate
@@ -193,13 +199,18 @@ GitHub issue states.
 
 All changes are doc-only (no code)." \
   --base main \
-  --label documentation \
-  --auto-merge \
-  --squash
+  --label documentation
 ```
 
-If `--auto-merge` is not supported (e.g., branch protection requires reviews),
-note this and proceed to Step 9 regardless.
+After the PR is created, enable auto-merge with squash via a separate command:
+
+```bash
+gh pr merge <pr-number> --auto --squash
+```
+
+If auto-merge cannot be enabled (e.g., the repository's branch protection
+requires a human review before merge is allowed), note this to the user and
+proceed to Step 9 — the PR will merge once approved.
 
 ---
 
@@ -280,7 +291,10 @@ unblock the most downstream work — and explain why it's the critical path item
   user decide.
 - **Respect in-flight work** — do not recommend an issue already assigned or
   with an open PR unless it's the only unblocked option.
-- **Keep status emoji consistent** — use only ✅ (done), 🔄 (in progress),
-  🚧 (PR open), and 🟡 (not started) to avoid visual noise.
+- **Keep status emoji consistent** — use exactly four states and no others:
+  - ✅ — all sub-issues CLOSED (phase/item complete)
+  - 🔄 — mix of CLOSED and OPEN sub-issues (partial progress, no open PR)
+  - 🚧 — an open PR exists for this issue (actively being worked)
+  - 🟡 — all sub-issues OPEN, no PR (not yet started)
 - **Idempotent updates** — if a status marker already matches reality (e.g.
   already shows ✅ and the issue is CLOSED), leave it unchanged.
