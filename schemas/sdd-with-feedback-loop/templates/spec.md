@@ -44,6 +44,8 @@ Reason for removal:
 
 ## Non-Functional Acceptance Criteria
 
+> **Important:** NFAC scenarios MUST NOT duplicate scenarios already expressed in the functional requirements sections above (ADDED/MODIFIED/REMOVED). If a functional scenario already covers a given behavior (e.g., access-control rejection, error handling), cross-reference it here instead of repeating it. Only include NFAC scenarios that express genuinely new, non-functional behaviors (latency budgets, throughput limits, recovery SLOs, audit logging, etc.).
+
 ### Requirement: Performance
 
 #### Scenario: Latency budget
@@ -53,6 +55,8 @@ Reason for removal:
 - **Then** <target metric>
 
 ### Requirement: Security
+
+> If access-control rejections are already fully specified by functional scenarios above, replace the scenario below with a cross-reference: "See functional scenarios: [scenario name(s)]". Only add a distinct scenario here if there is a security property not expressed by the functional requirements (e.g., audit log written, token not leaked in error body).
 
 #### Scenario: Access control
 

@@ -130,8 +130,8 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
     **Launch the sub-agent:**
     Use the Agent tool and instruct it to: "Run the openspec-review-code skill".
 
-    **Act on the review:**
-    Read the sub-agent's report. The primary agent must automatically address all findings from the sub-agent's report, applying fixes for complexity, duplication, and quality issues before committing. After applying fixes, re-run all tests to confirm they pass.
+    **Act on the review — DO NOT STOP:**
+    The sub-agent's report is internal working state, not a user-facing output. You MUST NOT present the findings list to the user, pause, or ask for confirmation. Read the report internally, apply every clearly-correct fix directly to the code, then re-run all tests to confirm they pass, and proceed to commit — all without user interaction. The only reason to pause is if a finding is ambiguous or contradicts the spec; in that case, note it in a single brief sentence and move on.
 
 9. **Commit and open PR** *(when all tasks complete)*
 
@@ -239,26 +239,13 @@ All tasks complete. Running pre-commit review before committing.
 ## Output During Pre-PR Review
 
 ```text
-## Pre-PR Self-Review
-
-→ Spawning code reviewer sub-agent to review all changes...
-
-## Pre-PR Review Report
-
-### Complexity Issues
-- src/foo.ts:42 — nested ternary hard to follow — Suggested fix: extract to named function
-
-### Duplication Issues
-- None
-
-### Quality Issues
-- src/bar.ts:17 — variable name `x` is unclear at call site — Suggested fix: rename to `retryCount`
-
-→ Applying 2 accepted fixes...
-→ Re-running tests to confirm fixes pass... ✓
-
-Pre-PR review complete — proceeding to commit.
+→ Running pre-commit code review (sub-agent)...
+→ Applying fixes from review... ✓
+→ Tests pass after fixes ✓
+→ Proceeding to commit.
 ```
+
+The sub-agent's finding list is NOT shown to the user. Apply findings silently and continue.
 
 ## Output During PR Loop
 
@@ -334,6 +321,7 @@ What would you like to do?
 - Use `contextFiles` from CLI output and do not assume specific file names
 - In a git repo: Step 1 is always checkout default branch + pull; Step 2 is always create working branch + push to remote immediately
 - Never skip step 8 (pre-commit code review); you MUST spawn a sub-agent to run the `openspec-review-code` skill before every commit, and the primary agent must automatically address all findings from the sub-agent before committing.
+- **NEVER stop after receiving the sub-agent review report.** Do not present the findings list to the user. Do not ask for confirmation. Apply all clearly-correct fixes silently, re-run tests, and continue to commit — all without user interaction. Showing the finding list to the user and waiting is the exact wrong behavior.
 - After all tasks are locally complete, validated, and the pre-commit review is done, always commit + push + open PR before declaring done
 - After opening a PR, immediately enable auto-merge, THEN wait 3 minutes before inspecting comments or checks.
 - After every push, always wait 3 minutes before re-assessing — lets CI re-trigger and auto-resolve stale comment threads
