@@ -120,20 +120,20 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    - Tasks completed this session
    - Overall progress in `N/M tasks complete` form
-   - If all done, proceed to step 8
+   - If all done, proceed to step 9
    - If paused, explain why and wait for guidance
 
- 8. **Pre-Commit Code Review** *(before every commit)*
+9. **Pre-Commit Code Review** *(before every commit)*
 
     Before committing, you MUST spawn a dedicated sub-agent to run the `openspec-review-code` skill.
 
     **Launch the sub-agent:**
     Use the Agent tool and instruct it to: "Run the openspec-review-code skill".
 
-    **Act on the review:**
-    Read the sub-agent's report. The primary agent must automatically address all findings from the sub-agent's report, applying fixes for complexity, duplication, and quality issues before committing. After applying fixes, re-run all tests to confirm they pass.
+    **Act on the review — DO NOT STOP:**
+    The sub-agent's report is internal working state, not a user-facing output. You MUST NOT present the findings list to the user, pause, or ask for confirmation. Read the report internally, apply every clearly-correct fix directly to the code, then re-run all tests to confirm they pass, and proceed to commit — all without user interaction. If a finding is ambiguous, skip it and continue silently. Only pause for user input if a finding directly contradicts the spec and resolving it requires a decision only the user can make.
 
-9. **Commit and open PR** *(when all tasks complete)*
+10. **Commit and open PR** *(when all tasks complete)*
 
    After all tasks are marked complete, all local validation passes, and the pre-PR review fixes have been applied:
 
@@ -153,11 +153,11 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - Announce that auto-merge has been enabled — the PR will merge automatically once all required checks pass and no blocking reviews remain. You must ensure all PR comments are addressed and threads are resolved to allow the process to progress.
    - **Wait 3 minutes** before doing anything else — this gives CI time to start and reviewers time to leave early comments
 
-10. **PR review and CI loop** *(iterate until the PR merges)*
+11. **PR review and CI loop** *(iterate until the PR merges)*
 
    Repeat the following cycle until the PR is detected as merged. Do not wait for a human to report the merge or to flag new comments — poll for both autonomously after each iteration.
 
-   **10a. Assess current state**
+   **11a. Assess current state**
 
    Run both checks in parallel:
 
@@ -166,33 +166,33 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    If `pageInfo.hasNextPage` is `true`, paginate using `after:"<endCursor>"` until all threads are fetched.
 
-   **10b. Address all open issues** *(blocking CI failures and review comments together)*
+   **11b. Address all open issues** *(blocking CI failures and review comments together)*
 
    Gather every problem in one pass:
 
    - For each **failing REQUIRED CI check** (`isRequired: true` and `state: "FAILING"`): read the failure output (`gh run view <run-id> --log-failed`), diagnose, and fix in code. Ignore failing checks that are not required.
    - For each **unresolved review thread**: read the latest comment body, and either implement the requested change or draft a polite reply if the request is unclear or out of scope.
 
-   Once all fixes and replies are ready, **commit everything and push once**. Batching into a single push minimises unnecessary CI runs and wait time.
+   Once all fixes and replies are ready, **run step 9 (pre-commit code review) before committing** — the review requirement applies to every commit, including fixes made during the PR loop. Then **commit everything and push once**. Batching into a single push minimises unnecessary CI runs and wait time.
 
    After pushing, **wait 3 minutes** to let CI re-trigger and allow addressed threads to auto-resolve.
 
-   After the 3-minute wait, re-run the GraphQL query from 10a; for any thread you addressed that still shows `isResolved: false`, resolve it explicitly:
+   After the 3-minute wait, re-run the GraphQL query from 11a; for any thread you addressed that still shows `isResolved: false`, resolve it explicitly:
 
    Run this via: `gh api graphql -f query='mutation { resolveReviewThread(input: { threadId: "<thread-id>" }) { thread { id isResolved } } }'`
 
-   Proceed to 10c.
+   Proceed to 11c.
 
-   **10c. Poll for merge**
+   **11c. Poll for merge**
 
    After each iteration, poll: `gh pr view <PR-URL> --json state,mergedAt`.
    - `MERGED` — exit the loop and proceed to post-merge steps
    - `CLOSED` — exit the loop and notify the user that the PR was closed without merging; do not proceed to post-merge steps
-   - `OPEN` — return to 10a
+   - `OPEN` — return to 11a
 
    Do not wait for a human to report the merge or closure — detect it autonomously.
 
-11. **Post-merge steps** *(after PR merges)*
+12. **Post-merge steps** *(after PR merges)*
 
     - `git checkout <default-branch>` and `git pull --ff-only`
     - Verify the merged changes appear on the default branch
@@ -239,26 +239,13 @@ All tasks complete. Running pre-commit review before committing.
 ## Output During Pre-PR Review
 
 ```text
-## Pre-PR Self-Review
-
-→ Spawning code reviewer sub-agent to review all changes...
-
-## Pre-PR Review Report
-
-### Complexity Issues
-- src/foo.ts:42 — nested ternary hard to follow — Suggested fix: extract to named function
-
-### Duplication Issues
-- None
-
-### Quality Issues
-- src/bar.ts:17 — variable name `x` is unclear at call site — Suggested fix: rename to `retryCount`
-
-→ Applying 2 accepted fixes...
-→ Re-running tests to confirm fixes pass... ✓
-
-Pre-PR review complete — proceeding to commit.
+→ Running pre-commit code review (sub-agent)...
+→ Applying fixes from review... ✓
+→ Tests pass after fixes ✓
+→ Proceeding to commit.
 ```
+
+The sub-agent's finding list is NOT shown to the user. Apply findings silently and continue.
 
 ## Output During PR Loop
 
@@ -333,7 +320,8 @@ What would you like to do?
 - Pause on errors, blockers, or unclear requirements; do not guess
 - Use `contextFiles` from CLI output and do not assume specific file names
 - In a git repo: Step 1 is always checkout default branch + pull; Step 2 is always create working branch + push to remote immediately
-- Never skip step 8 (pre-commit code review); you MUST spawn a sub-agent to run the `openspec-review-code` skill before every commit, and the primary agent must automatically address all findings from the sub-agent before committing.
+- Never skip step 9 (pre-commit code review); you MUST spawn a sub-agent to run the `openspec-review-code` skill before every commit, and the primary agent must automatically address all findings from the sub-agent before committing.
+- **NEVER stop after receiving the sub-agent review report.** Do not present the findings list to the user. Do not ask for confirmation. Apply all clearly-correct fixes silently, re-run tests, and continue to commit — all without user interaction. Showing the finding list to the user and waiting is the exact wrong behavior.
 - After all tasks are locally complete, validated, and the pre-commit review is done, always commit + push + open PR before declaring done
 - After opening a PR, immediately enable auto-merge, THEN wait 3 minutes before inspecting comments or checks.
 - After every push, always wait 3 minutes before re-assessing — lets CI re-trigger and auto-resolve stale comment threads

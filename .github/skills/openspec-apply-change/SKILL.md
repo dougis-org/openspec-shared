@@ -87,6 +87,12 @@ Implement tasks from an OpenSpec change.
    - If all done: suggest archive
    - If paused: explain why and wait for guidance
 
+8. **Pre-Commit Code Review** *(before every commit)*
+
+   Spawn a dedicated sub-agent to run the `openspec-review-code` skill.
+
+   **DO NOT STOP after receiving the report.** The findings are internal working state — do not present them to the user, do not ask for confirmation. Apply every clearly-correct fix directly to the code, re-run tests to confirm they pass, and proceed to commit without user interaction. If a finding is ambiguous, skip it and continue silently. Only pause for user input if a finding directly contradicts the spec and resolving it requires a decision only the user can make.
+
 **Output During Implementation**
 
 ```
@@ -147,6 +153,7 @@ What would you like to do?
 - Update task checkbox immediately after completing each task
 - Pause on errors, blockers, or unclear requirements - don't guess
 - Use contextFiles from CLI output, don't assume specific file names
+- **NEVER stop after receiving the sub-agent review report.** Do not present the findings list to the user. Do not ask for confirmation. Apply all clearly-correct fixes silently, re-run tests, and proceed to commit without user interaction.
 
 **Fluid Workflow Integration**
 

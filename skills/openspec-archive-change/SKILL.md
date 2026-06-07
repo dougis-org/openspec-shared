@@ -54,19 +54,18 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - Use **AskUserQuestion tool** to confirm user wants to proceed
    - Proceed if user confirms
 
-4. **Check task completion status**
+4. **Complete and finalize tasks.md**
 
-   Read the tasks file, typically `tasks.md`, to check for incomplete tasks.
+   Read the tasks file, typically `tasks.md`.
 
-   Count tasks marked with `- [ ]` for incomplete versus `- [x]` for complete.
+   **Before proceeding, apply these fixes unconditionally:**
 
-   **If incomplete tasks found:**
+   - Replace any remaining `YYYY-MM-DD` date placeholders with the actual archive date (format: `YYYY-MM-DD` using today's date).
+   - Mark all remaining `- [ ]` items as `- [x]`. The archive is the final post-merge step; no tasks should remain open after this point.
 
-   - Display warning showing count of incomplete tasks
-   - Use **AskUserQuestion tool** to confirm user wants to proceed
-   - Proceed if user confirms
+   Write the updated tasks.md back to disk as part of the archive commit — do not leave it with unchecked boxes or unresolved placeholders.
 
-   **If no tasks file exists:** Proceed without task-related warning.
+   **If no tasks file exists:** Proceed without this step.
 
 5. **Assess delta spec sync state**
 
@@ -84,6 +83,8 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - If already synced: `Archive now`, `Sync anyway`, or `Cancel`
 
    If the user chooses sync, use a task or subagent prompt that syncs the delta specs for `[change-name]` back to `openspec/specs/`. For each file under `openspec/changes/[change-name]/specs/[capability]/spec.md`, apply the changes to the corresponding `openspec/specs/[capability]/spec.md`. Include the analyzed delta summary in that prompt. Proceed to archive regardless of choice.
+
+   **After syncing, fix relative links in every promoted spec:** Replace any references to `design.md` or `tasks.md` (bare filenames or relative paths that no longer resolve from `openspec/specs/[capability]/`) with paths pointing to the archive location: `../../changes/archive/YYYY-MM-DD-<name>/design.md` and `../../changes/archive/YYYY-MM-DD-<name>/tasks.md`. Commit these link fixes as part of the same archive commit.
 
 6. **Perform the archive**
 

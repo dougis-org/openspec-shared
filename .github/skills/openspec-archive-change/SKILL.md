@@ -37,18 +37,17 @@ Archive a completed change in the experimental workflow.
    - Use **AskUserQuestion tool** to confirm user wants to proceed
    - Proceed if user confirms
 
-3. **Check task completion status**
+3. **Complete and finalize tasks.md**
 
-   Read the tasks file (typically `tasks.md`) to check for incomplete tasks.
+   Read the tasks file (typically `tasks.md`).
 
-   Count tasks marked with `- [ ]` (incomplete) vs `- [x]` (complete).
+   **Before proceeding, apply these fixes unconditionally:**
+   - Replace any remaining `YYYY-MM-DD` date placeholders with the actual archive date (today's date in `YYYY-MM-DD` format).
+   - Mark all remaining `- [ ]` items as `- [x]`. The archive is the final post-merge step; no tasks should remain open after this point.
 
-   **If incomplete tasks found:**
-   - Display warning showing count of incomplete tasks
-   - Use **AskUserQuestion tool** to confirm user wants to proceed
-   - Proceed if user confirms
+   Write the updated tasks.md back to disk — it will be included in the archive commit. Do not leave it with unchecked boxes or unresolved placeholders.
 
-   **If no tasks file exists:** Proceed without task-related warning.
+   **If no tasks file exists:** Proceed without this step.
 
 4. **Assess delta spec sync state**
 
@@ -64,6 +63,8 @@ Archive a completed change in the experimental workflow.
    - If already synced: "Archive now", "Sync anyway", "Cancel"
 
    If user chooses sync, use Task tool (subagent_type: "general-purpose", prompt: "Use Skill tool to invoke openspec-sync-specs for change '<name>'. Delta spec analysis: <include the analyzed delta spec summary>"). Proceed to archive regardless of choice.
+
+   **After syncing, fix relative links in every promoted spec:** Scan each file just written to `openspec/specs/<capability>/` and replace any bare `design.md` or `tasks.md` references (and any relative paths that no longer resolve from `openspec/specs/<capability>/`) with archive-relative paths: `../../changes/archive/YYYY-MM-DD-<name>/design.md` and `../../changes/archive/YYYY-MM-DD-<name>/tasks.md`. Include these fixes in the archive commit.
 
 5. **Perform the archive**
 
