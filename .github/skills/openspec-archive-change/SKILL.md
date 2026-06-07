@@ -64,7 +64,7 @@ Archive a completed change in the experimental workflow.
 
    If user chooses sync, use Task tool (subagent_type: "general-purpose", prompt: "Use Skill tool to invoke openspec-sync-specs for change '<name>'. Delta spec analysis: <include the analyzed delta spec summary>"). Proceed to archive regardless of choice.
 
-   **After syncing, fix relative links in every promoted spec:** Scan each file just written to `openspec/specs/` and replace any bare `design.md` or `tasks.md` references (and any relative paths that no longer resolve from `openspec/specs/<capability>/`) with archive-relative paths: `../../changes/archive/YYYY-MM-DD-<name>/design.md` and `../../changes/archive/YYYY-MM-DD-<name>/tasks.md`. Include these fixes in the archive commit.
+   **After syncing, fix relative links in every promoted spec:** Scan each file just written to `openspec/specs/<capability>/` and replace any bare `design.md` or `tasks.md` references (and any relative paths that no longer resolve from `openspec/specs/<capability>/`) with archive-relative paths: `../../changes/archive/YYYY-MM-DD-<name>/design.md` and `../../changes/archive/YYYY-MM-DD-<name>/tasks.md`. Include these fixes in the archive commit.
 
 5. **Perform the archive**
 
