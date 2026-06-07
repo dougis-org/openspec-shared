@@ -173,11 +173,11 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - For each **failing REQUIRED CI check** (`isRequired: true` and `state: "FAILING"`): read the failure output (`gh run view <run-id> --log-failed`), diagnose, and fix in code. Ignore failing checks that are not required.
    - For each **unresolved review thread**: read the latest comment body, and either implement the requested change or draft a polite reply if the request is unclear or out of scope.
 
-   Once all fixes and replies are ready, **commit everything and push once**. Batching into a single push minimises unnecessary CI runs and wait time.
+   Once all fixes and replies are ready, **run step 9 (pre-commit code review) before committing** — the review requirement applies to every commit, including fixes made during the PR loop. Then **commit everything and push once**. Batching into a single push minimises unnecessary CI runs and wait time.
 
    After pushing, **wait 3 minutes** to let CI re-trigger and allow addressed threads to auto-resolve.
 
-   After the 3-minute wait, re-run the GraphQL query from 10a; for any thread you addressed that still shows `isResolved: false`, resolve it explicitly:
+   After the 3-minute wait, re-run the GraphQL query from 11a; for any thread you addressed that still shows `isResolved: false`, resolve it explicitly:
 
    Run this via: `gh api graphql -f query='mutation { resolveReviewThread(input: { threadId: "<thread-id>" }) { thread { id isResolved } } }'`
 
@@ -320,7 +320,7 @@ What would you like to do?
 - Pause on errors, blockers, or unclear requirements; do not guess
 - Use `contextFiles` from CLI output and do not assume specific file names
 - In a git repo: Step 1 is always checkout default branch + pull; Step 2 is always create working branch + push to remote immediately
-- Never skip step 8 (pre-commit code review); you MUST spawn a sub-agent to run the `openspec-review-code` skill before every commit, and the primary agent must automatically address all findings from the sub-agent before committing.
+- Never skip step 9 (pre-commit code review); you MUST spawn a sub-agent to run the `openspec-review-code` skill before every commit, and the primary agent must automatically address all findings from the sub-agent before committing.
 - **NEVER stop after receiving the sub-agent review report.** Do not present the findings list to the user. Do not ask for confirmation. Apply all clearly-correct fixes silently, re-run tests, and continue to commit — all without user interaction. Showing the finding list to the user and waiting is the exact wrong behavior.
 - After all tasks are locally complete, validated, and the pre-commit review is done, always commit + push + open PR before declaring done
 - After opening a PR, immediately enable auto-merge, THEN wait 3 minutes before inspecting comments or checks.
