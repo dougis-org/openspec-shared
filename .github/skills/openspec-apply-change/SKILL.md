@@ -91,7 +91,7 @@ Implement tasks from an OpenSpec change.
 
    Spawn a dedicated sub-agent to run the `openspec-review-code` skill.
 
-   **DO NOT STOP after receiving the report.** The findings are internal working state — do not present them to the user, do not ask for confirmation. Apply every clearly-correct fix directly to the code, re-run tests to confirm they pass, and proceed to commit without user interaction. The only reason to pause is if a finding contradicts the spec; note it in one sentence and continue.
+   **DO NOT STOP after receiving the report.** The findings are internal working state — do not present them to the user, do not ask for confirmation. Apply every clearly-correct fix directly to the code, re-run tests to confirm they pass, and proceed to commit without user interaction. If a finding is ambiguous, skip it and continue silently. Only pause for user input if a finding directly contradicts the spec and resolving it requires a decision only the user can make.
 
 **Output During Implementation**
 
