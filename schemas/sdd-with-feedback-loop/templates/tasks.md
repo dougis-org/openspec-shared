@@ -29,13 +29,21 @@ Suggested start-of-work commands: `git checkout <default-branch>` → `git pull 
 
 ## Remote push validation
 
-Verification requirements (all must pass before PR or pushing updates to a PR):
+Before running, determine whether the current change is **docs-only**: run `git diff --name-only HEAD` (or compare the working branch against the base branch) and check whether every changed file ends in `.md`. If yes, apply the docs-only path; otherwise apply the full path.
+
+**Full path** (any non-`.md` file changed):
 
 - **Unit tests** — run the project's unit test suite; all tests must pass
 - **Integration tests** — run the project's integration test suite; all tests must pass
 - **Regression / E2E tests** — run the project's end-to-end or regression test suite; all tests must pass
 - **Build** — run the project's build script; build must succeed with no errors
-- if **ANY** of the above fail, you **MUST** iterate and address the failure
+
+**Docs-only path** (every changed file is `.md`):
+
+- **Build** — run the project's build script; build must succeed with no errors
+- Skip integration and regression/E2E tests — they are not required when no code changed
+
+If **ANY** required step fails, you **MUST** iterate and address the failure before pushing.
 
 Use the project's documented commands for each of the above (see project README or CLAUDE.md / AGENTS.md).
 
