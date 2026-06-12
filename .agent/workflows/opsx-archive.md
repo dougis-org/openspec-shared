@@ -58,7 +58,20 @@ Archive a completed change in the experimental workflow.
 
    If user chooses sync, use Task tool (subagent_type: "general-purpose", prompt: "Use Skill tool to invoke openspec-sync-specs for change '<name>'. Delta spec analysis: <include the analyzed delta spec summary>"). Proceed to archive regardless of choice.
 
-5. **Perform the archive**
+5. **Update relative links in promoted spec files**
+
+   After syncing delta specs to `openspec/specs/`, spec files that were copied from `openspec/changes/<name>/specs/` will contain relative links (e.g. `../../design.md`, `../../tasks.md`) that point into the change directory. Once archived, those paths no longer resolve. Fix them before committing:
+
+   ```bash
+   ARCHIVE=YYYY-MM-DD-<name>
+   find openspec/specs/ -name "spec.md" | xargs sed -i \
+     -e "s|../../design.md|../../changes/archive/${ARCHIVE}/design.md|g" \
+     -e "s|../../tasks.md|../../changes/archive/${ARCHIVE}/tasks.md|g"
+   ```
+
+   Verify no `../../design.md` or `../../tasks.md` occurrences remain in promoted spec files. Only run this against files that were actually added or modified in this archive operation — do not rewrite specs from unrelated changes.
+
+6. **Perform the archive**
 
    Create the archive directory if it doesn't exist:
    ```bash
@@ -75,7 +88,7 @@ Archive a completed change in the experimental workflow.
    mv openspec/changes/<name> openspec/changes/archive/YYYY-MM-DD-<name>
    ```
 
-6. **Open a doc-branch PR for the archive**
+7. **Open a doc-branch PR for the archive**
 
    Stage and commit all archive and spec changes, then create a `doc/` branch and open a PR — never push directly to the default branch:
 
@@ -95,7 +108,7 @@ Archive a completed change in the experimental workflow.
 
    **IMPORTANT:** Do NOT push directly to the default branch. Always use the PR flow so contributors without direct push access can observe and act on the change.
 
-7. **Display summary**
+8. **Display summary**
 
    Show archive completion summary including:
    - Change name

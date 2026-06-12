@@ -66,10 +66,10 @@ Blocking resolution flow:
 - [ ] Verify the merged changes appear on the default branch
 - [ ] Mark all remaining tasks as complete (`- [x]`)
 - [ ] Update repository documentation impacted by the change
-- [ ] Sync approved spec deltas into `openspec/specs/` (global spec)
+- [ ] Sync approved spec deltas into `openspec/specs/` (global spec). After copying each `spec.md` to `openspec/specs/<cap>/spec.md`, update all relative links that pointed into the change directory so they resolve from the archive location — replace `../../design.md` with `../../changes/archive/YYYY-MM-DD-<name>/design.md`, and similarly for `../../tasks.md` and any other relative paths into the change directory.
 - [ ] Archive the change: move `openspec/changes/<name>/` to `openspec/changes/archive/YYYY-MM-DD-<name>/` **and stage both the new location and the deletion of the old location in a single commit** — do not commit the copy and delete separately
 - [ ] Confirm `openspec/changes/archive/YYYY-MM-DD-<name>/` exists and `openspec/changes/<name>/` is gone
 - [ ] Commit and push the archive to the default branch in one commit
-- [ ] Prune merged local feature branches: `git fetch --prune` and `git branch -d <feature-branch>`
+- [ ] Prune merged local feature branches: `git fetch --prune` and `git branch -D <feature-branch>`
 
-Required cleanup after archive: `git fetch --prune` and `git branch -d <feature-branch>`
+Required cleanup after archive: `git fetch --prune` and `git branch -D <feature-branch>`

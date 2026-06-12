@@ -1,6 +1,6 @@
 ## ADDED Requirements
 
-This document details *changes* to requirements and is additive to the `design.md` document, not a replacement.
+This document details *changes* to requirements and is additive to the [`design.md`](../../design.md) document, not a replacement.
 
 ### Requirement: ADDED [capability requirement title]
 

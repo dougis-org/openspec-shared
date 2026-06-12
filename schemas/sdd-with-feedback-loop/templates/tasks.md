@@ -70,13 +70,13 @@ Blocking resolution flow:
 - [ ] Verify the merged changes appear on the default branch
 - [ ] Mark all remaining tasks as complete (`- [x]`)
 - [ ] Update repository documentation impacted by the change
-- [ ] Sync approved spec deltas into `openspec/specs/` (global spec)
+- [ ] Sync approved spec deltas into `openspec/specs/` (global spec). After copying each `spec.md` to `openspec/specs/<cap>/spec.md`, update all relative links that pointed into the change directory so they resolve from the archive location — replace `../../design.md` with `../../changes/archive/YYYY-MM-DD-<name>/design.md`, and similarly for `../../tasks.md` and any other relative paths into the change directory.
 - [ ] Archive the change: move `openspec/changes/<name>/` to `openspec/changes/archive/YYYY-MM-DD-<name>/` **and stage both the new location and the deletion of the old location in a single commit** — do not commit the copy and delete separately
 - [ ] Confirm `openspec/changes/archive/YYYY-MM-DD-<name>/` exists and `openspec/changes/<name>/` is gone
 - [ ] **Create a doc branch** for the archive and spec updates: `git checkout -b doc/archive-YYYY-MM-DD-<name>` then `git push -u origin doc/archive-YYYY-MM-DD-<name>`
 - [ ] Open a PR from `doc/archive-YYYY-MM-DD-<name>` to `<default-branch>` with title `docs: archive <name> (YYYY-MM-DD)` — **do NOT push directly to `<default-branch>`**
 - [ ] **IMMEDIATELY** enable auto-merge on the doc PR: `gh pr merge <DOC-PR-URL> --auto --merge` (NEVER use `--admin` to force the merge)
 - [ ] Monitor the doc PR until it merges (same loop as the implementation PR — address comments and CI failures, push to the same doc branch, repeat)
-- [ ] Prune merged local branches: `git fetch --prune` and `git branch -d <feature-branch> doc/archive-YYYY-MM-DD-<name>`
+- [ ] Prune merged local branches: `git fetch --prune` and `git branch -D <feature-branch> doc/archive-YYYY-MM-DD-<name>`
 
-Required cleanup after archive: `git fetch --prune` and `git branch -d <feature-branch> doc/archive-YYYY-MM-DD-<name>`
+Required cleanup after archive: `git fetch --prune` and `git branch -D <feature-branch> doc/archive-YYYY-MM-DD-<name>`
