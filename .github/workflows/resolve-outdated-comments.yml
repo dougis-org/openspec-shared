@@ -7,4 +7,7 @@ on:
 
 jobs:
   resolve:
+    permissions:
+      contents: write
+      pull-requests: write
     uses: dougis-org/cicd-tooling/.github/workflows/resolve-outdated-comments.yml@main
