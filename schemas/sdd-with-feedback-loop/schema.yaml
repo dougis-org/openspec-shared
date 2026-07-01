@@ -43,11 +43,14 @@ artifacts:
     description: Implementation task checklist with Preparation through Post-Merge steps
     template: tasks.md
     instruction: |
-      Create task list with sections: Preparation, Execution, Pre-Commit Code Review,
+      Create task list with sections: Preparation, Preflight, Execution, Pre-Commit Code Review,
       Validation, PR and Merge, and Post-Merge. Follow strict BDD/TDD.
       Include ownership metadata and a blocking resolution flow.
       Require the `openspec-review-code` sub-agent to be run before every commit, and require the primary agent to automatically address all findings from the sub-agent before committing.
-      Ensure PRs are set to auto-merge when created. All paths must be relative to project root.
+      In Preflight: verify `pr-review-toolkit:review-pr` is available; halt and prompt the user to install it if not found.
+      In Execution: after creating and pushing the working branch, if the change is issue-driven, run `gh issue edit #N --add-label "in-progress"` and move the GitHub Project item to the "In Progress" status column via runtime-discovered field option IDs; warn and skip if project item not found or `gh` token lacks `project` scope.
+      In PR and Merge: when opening the PR, if issue-driven, include `Closes #N` unconditionally in the PR body, run `gh issue edit #N --add-label "in-review" --remove-label "in-progress"`, and move the project item to the "In Review" column. After opening the PR, wait 60 seconds, spawn a sub-agent to run `pr-review-toolkit:review-pr`, address all findings (commit, push, re-run) until zero findings remain, then enable auto-merge via `gh pr merge <PR-URL> --auto --merge`. Do not enable auto-merge before the review gate passes. If findings persist after three or more iterations with no progress, report the stall and wait for human guidance.
+      All paths must be relative to project root.
     requires:
       - specs
 
