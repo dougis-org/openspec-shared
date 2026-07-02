@@ -1,12 +1,28 @@
-## Tracking
+## GitHub Issues
 
-- **Tracker:** GitHub Issues
-- **Ticket:** n/a
-- **Note:** No tracking ticket exists for this work.
+- **Ticket:** n/a — No tracking ticket exists for this work.
 
 ## Why
 
 The `sdd-with-feedback-loop` schema has no lifecycle hooks into GitHub Issues or GitHub Projects, so ticket status drifts silently as work progresses, and there is no enforced PR review before auto-merge is enabled — a reviewer sub-agent may or may not comment, but nothing guarantees a review happened before the PR is allowed to merge.
+
+## Problem Space
+
+The `sdd-with-feedback-loop` schema encodes the implementation lifecycle in three files (`config.yaml`, `schema.yaml`, `templates/tasks.md`) but none of them connect to GitHub Issues or GitHub Projects. As a result, issue status drifts silently — a ticket stays "Open" while a feature branch exists and a PR is under review. Additionally, the auto-merge step fires immediately on PR open with no guarantee that a code review has been performed; any review findings arrive after the merge is already queued.
+
+## Scope
+
+**In scope:**
+- GitHub issue label transitions at branch creation (`in-progress`), PR open (`in-review`), and merge (auto-close via `Closes #N`)
+- GitHub Projects board item transitions alongside label changes, using runtime-discovered field option IDs
+- Preflight verification that `pr-review-toolkit:review-pr` is installed before implementation starts
+- Enforced review gate: auto-merge only after `pr-review-toolkit:review-pr` returns zero findings
+- Auto-detection of in-progress issues in `get-next-project-issue` using project board status and labels
+
+**Out of scope:**
+- Non-GitHub trackers (Linear, Azure DevOps)
+- Bidirectional sync between board state and OpenSpec artifacts
+- Expanding `get-next-project-issue` beyond in-progress filtering
 
 ## What Changes
 

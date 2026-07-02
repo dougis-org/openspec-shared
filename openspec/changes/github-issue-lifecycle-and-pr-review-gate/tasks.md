@@ -57,9 +57,9 @@
 ## 8. PR and Merge
 
 - [x] 8.1 Before commit: spawn sub-agent to run `openspec-review-code`; apply all clearly-correct findings; re-validate
-- [ ] 8.2 Commit all changes: `git add -A && git commit -m "feat: github issue lifecycle hooks and enforced pr review gate"`
-- [ ] 8.3 Push to remote: `git push`
-- [ ] 8.4 Open PR to `main`; include `Closes #N` if an issue was tracked for this change
+- [x] 8.2 Commit all changes: `git add -A && git commit -m "feat: github issue lifecycle hooks and enforced pr review gate"`
+- [x] 8.3 Push to remote: `git push`
+- [x] 8.4 Open PR to `main`; include `Closes #N` if an issue was tracked for this change
 - [ ] 8.5 Wait 60 seconds; run `pr-review-toolkit:review-pr`; address findings; enable auto-merge once zero findings
 - [ ] 8.6 Monitor until merged: address new comments and CI failures; push fixes; repeat until `gh pr view --json state` returns `MERGED`
 
