@@ -60,18 +60,18 @@
 - [x] 8.2 Commit all changes: `git add -A && git commit -m "feat: github issue lifecycle hooks and enforced pr review gate"`
 - [x] 8.3 Push to remote: `git push`
 - [x] 8.4 Open PR to `main`; include `Closes #N` if an issue was tracked for this change
-- [ ] 8.5 Wait 60 seconds; run `pr-review-toolkit:review-pr`; address findings; enable auto-merge once zero findings
-- [ ] 8.6 Monitor until merged: address new comments and CI failures; push fixes; repeat until `gh pr view --json state` returns `MERGED`
+- [x] 8.5 Wait 60 seconds; run `pr-review-toolkit:review-pr`; address findings; enable auto-merge once zero findings
+- [x] 8.6 Monitor until merged: address new comments and CI failures; push fixes; repeat until `gh pr view --json state` returns `MERGED`
 
 ## 9. Post-Merge
 
-- [ ] 9.1 `git checkout main && git pull --ff-only`
-- [ ] 9.2 Verify merged changes appear on `main`
-- [ ] 9.3 Sync approved spec deltas to `openspec/specs/`:
+- [x] 9.1 `git checkout main && git pull --ff-only`
+- [x] 9.2 Verify merged changes appear on `main`
+- [x] 9.3 Sync approved spec deltas to `openspec/specs/`:
   - Copy `openspec/changes/github-issue-lifecycle-and-pr-review-gate/specs/github-issue-lifecycle/spec.md` → `openspec/specs/github-issue-lifecycle/spec.md`
   - Copy `openspec/changes/github-issue-lifecycle-and-pr-review-gate/specs/enforced-pr-review-gate/spec.md` → `openspec/specs/enforced-pr-review-gate/spec.md`
   - Update any relative links in copied specs to point to archive location
-- [ ] 9.4 Archive: move `openspec/changes/github-issue-lifecycle-and-pr-review-gate/` to `openspec/changes/archive/YYYY-MM-DD-github-issue-lifecycle-and-pr-review-gate/` in a single atomic commit (stage both the new location and the deletion of the original)
+- [x] 9.4 Archive: move `openspec/changes/github-issue-lifecycle-and-pr-review-gate/` to `openspec/changes/archive/2026-07-01-github-issue-lifecycle-and-pr-review-gate/` in a single atomic commit (stage both the new location and the deletion of the original)
 - [ ] 9.5 Create doc branch, open archive PR, enable auto-merge, monitor until merged
 - [ ] 9.6 Prune merged local branches: `git fetch --prune && git branch -D feat/github-issue-lifecycle-and-pr-review-gate`
 
