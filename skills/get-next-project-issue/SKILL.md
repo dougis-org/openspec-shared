@@ -90,11 +90,29 @@ For the selected project folder:
    ```
 
    Filter the returned JSON to only the numbers extracted in step 2.
-   Record `number`, `title`, and `state` (`OPEN` / `CLOSED`) for each.
+   Record `number`, `title`, `state` (`OPEN` / `CLOSED`), and `labels` for each.
    Using a single list call avoids the rate-limiting and process-spawn
    overhead that comes from running one `gh issue view` per issue.
 
-4. **Determine completion status** for each phase / section:
+4. **Fetch project item status for every open issue** from the GitHub Projects
+   board. First discover the project number:
+
+   ```bash
+   gh project list --owner <owner> --format json
+   ```
+
+   Then fetch all items with their current status column value:
+
+   ```bash
+   gh project item-list <project-number> --owner <owner> --format json
+   ```
+
+   Record the status column value for each item (match on `content.number`
+   to correlate with issue numbers). If this call fails (e.g., token lacks
+   `project` scope or no project exists), note the failure and continue —
+   in-progress detection will fall back to labels and open-PR signals only.
+
+5. **Determine completion status** for each phase / section:
    - All sub-issues CLOSED → phase complete
    - Some CLOSED, some OPEN → phase in progress
    - All OPEN → phase not started
@@ -103,23 +121,37 @@ For the selected project folder:
 
 ---
 
-### Step 5 — Ask about in-flight work
+### Step 5 — Detect in-flight work automatically
 
-Ask the user (via a message or follow-up prompt):
+Mark an open issue as `IN PROGRESS` if **any** of the following signals is true:
+
+1. **GitHub Projects board** (from Step 4): the issue's project item is in a
+   status column whose name semantically matches "In Progress" or "In Review"
+   (case-insensitive substring match). This is the primary signal when project
+   data is available.
+
+2. **Issue labels**: the issue carries the label `in-progress` or `in-review`
+   (from the `labels` field fetched in Step 4). This provides a redundant
+   signal visible on the issue list even without the project board.
+
+3. **Open PR**: check whether an open PR exists that references the issue:
+
+   ```bash
+   gh pr list --repo <owner>/<repo> --state open \
+     --json number,title,headRefName,body 2>/dev/null
+   ```
+
+   Match PRs to issues by body text (`Closes #N`, `Fixes #N`) or branch name
+   conventions. Mark any matched issue as `IN PROGRESS`.
+
+If the `gh project item-list` call from Step 4 failed and no label signal is
+present, fall back to asking the user manually:
 
 > Are any of the open issues currently being worked on (e.g., on a feature
 > branch or open PR)? If yes, which issue numbers?
 
-Accept a free-text response (comma-separated numbers, "none", or issue URLs).
-For each reported in-flight issue, check whether an open PR exists:
-
-```bash
-gh pr list --repo <owner>/<repo> --state open \
-  --json number,title,headRefName,body 2>/dev/null
-```
-
-Match PRs to issues by body text (`Closes #N`, `Fixes #N`) or branch name
-conventions. Mark any matched issue as `IN PROGRESS` in your evaluation.
+Accept a free-text response (comma-separated numbers, "none", or issue URLs)
+and mark each reported issue as `IN PROGRESS`.
 
 ---
 

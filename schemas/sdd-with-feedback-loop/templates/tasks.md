@@ -5,13 +5,16 @@
 - [ ] **Step 1 — Sync default branch:** `git checkout <default-branch>` and `git pull --ff-only`
 - [ ] **Step 2 — Create and publish working branch:** `git checkout -b <feature-branch-name>` then immediately `git push -u origin <feature-branch-name>`
 
+## Preflight
+
+- [ ] **Verify `pr-review-toolkit:review-pr` is available** — check the available skills list for `pr-review-toolkit:review-pr`. If the skill is not listed, halt immediately, inform the user that the plugin is required, provide installation guidance, and do not proceed until the user confirms it is installed.
+
 ## Execution
 
+- [ ] **Issue lifecycle: mark in-progress** _(skip if change is not issue-driven)_: run `gh issue edit #N --add-label "in-progress"`. Then discover the GitHub Project linked to the repo (`gh project list --owner <owner> --format json`), resolve the status field option semantically matching "In Progress" (`gh project field-list <project-number> --owner <owner> --format json`), and move the project item via `gh project item-edit`. If no project item is found, log a warning and continue. If the `gh` token lacks the `project` scope, surface a message instructing the user to run `gh auth refresh -s project` and skip the project-item update (issue label update still proceeds).
 - [ ] Implement sub-tasks in small, testable increments
 - [ ] Look for existing tooling or functions in the codebase that can be reused or extended before writing new logic from scratch
 - [ ] Confirm acceptance criteria are covered
-
-Suggested start-of-work commands: `git checkout <default-branch>` → `git pull --ff-only` → `git checkout -b <feature-branch-name>` → `git push -u origin <feature-branch-name>`
 
 ## Pre-Commit Code Review
 
@@ -51,9 +54,11 @@ Use the project's documented commands for each of the above (see project README 
 
 - [ ] Ensure the `openspec-review-code` sub-agent was run and all findings were automatically addressed before the final commit
 - [ ] Commit all changes to the working branch and push to remote
-- [ ] Open PR from working branch to `<default-branch>`. **If this change is issue-driven, the PR body MUST explicitly state "Closes #N" for each issue.**
-- [ ] **IMMEDIATELY** enable auto-merge: `gh pr merge <PR-URL> --auto --merge` (NEVER use `--admin` to force the merge)
-- [ ] Wait 180 seconds for CI to start and agentic reviewers to post their comments
+- [ ] Open PR from working branch to `<default-branch>`. **If this change is issue-driven, the PR body MUST include `Closes #N` for each linked issue** (unconditionally, not as an optional conditional).
+- [ ] **Issue lifecycle: mark in-review** _(skip if change is not issue-driven)_: run `gh issue edit #N --add-label "in-review" --remove-label "in-progress"`. Then move the project item to the status column semantically matching "In Review" via `gh project item-edit` (same project/field/option discovery as the in-progress lifecycle step above; warn and skip if not found).
+- [ ] Wait 60 seconds for CI to start
+- [ ] Spawn a sub-agent to run `pr-review-toolkit:review-pr`; address all findings (commit, push, re-run) until zero findings remain. If findings persist after three or more iterations with no progress, report the stall with remaining findings listed and wait for human guidance before continuing.
+- [ ] **Enable auto-merge only after the review gate passes (zero findings):** `gh pr merge <PR-URL> --auto --merge` (NEVER use `--admin` to force the merge)
 - [ ] **Iterate until merged** — repeat the following priority loop continuously until `gh pr view <PR-URL> --json state` returns `MERGED`; if it returns `CLOSED` exit and notify the user — **never wait for a human to report the merge; never force-merge**:
   1. **Build and tests** — run all steps in [Remote push validation]; fix any failures, commit, and push before doing anything else in this iteration
   2. **PR comments** — poll `gh pr view <PR-URL> --json reviewThreads`; for every unresolved thread, address the feedback, commit fixes, run [Remote push validation], push, wait 180 seconds; continue until all threads are resolved
