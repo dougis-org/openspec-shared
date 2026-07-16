@@ -67,13 +67,15 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - For `sdd-with-feedback-loop`, this typically includes proposal, specs, design, tasks, and tests.
    - For other schemas, follow `contextFiles` exactly as returned by the CLI
 
-5. **Sync with default branch**
+5. **Enter the change's dedicated worktree**
 
-   Before starting implementation, you MUST sync from the default branch.
+   All implementation happens inside a dedicated git worktree, never in the primary checkout — this is what lets multiple agents implement different changes from the same repo clone in parallel.
 
-   - `git checkout <default-branch>`
-   - `git pull --ff-only`
-   - `git checkout -b <feature-branch>` or `git checkout <feature-branch>` if it already exists.
+   - Run `git worktree list` to check whether `.worktrees/<name>` already exists (it normally does, created during propose or explore).
+   - If it exists, `cd` into it.
+   - If it does not exist yet (e.g. the change predates this convention, or was created manually), create it from the primary checkout: `git fetch origin`, then `git worktree add .worktrees/<name> -b <name> origin/<default-branch>` (or `git worktree add .worktrees/<name> <name>` if the branch already exists on remote), then `cd` into it.
+   - Confirm the branch is pushed to remote; if not, `git push -u origin <feature-branch>` immediately.
+   - Never `git checkout` a different branch inside the primary checkout to do this work — that would disrupt any other agent or human using that checkout concurrently.
 
 6. **Show current progress**
 
@@ -194,12 +196,13 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
 12. **Post-merge steps** *(after PR merges)*
 
-    - `git checkout <default-branch>` and `git pull --ff-only`
+    - From the primary checkout: `git checkout <default-branch>` and `git pull --ff-only`
     - Verify the merged changes appear on the default branch
     - Mark any remaining tasks as complete (`- [x]`) in the tasks file
     - Sync approved spec deltas to `openspec/specs/` if applicable
     - Archive the change: move the entire `openspec/changes/<name>/` directory to `openspec/changes/archive/YYYY-MM-DD-<name>/` — stage **both** the new location and the removal of the original in one `git add` so they land in a single commit; never split the copy and delete into separate commits
     - Commit and push the archive to the default branch
+    - Remove the change's dedicated worktree: `git worktree remove .worktrees/<name>`
     - Run `git fetch --prune` and `git branch -d <feature-branch>` to clean up
 
 ## Output During Implementation
@@ -284,7 +287,7 @@ Auto-merge: enabled ✓
 **PR:** merged ✓
 **Default branch:** verified ✓
 **Archive:** openspec/changes/archive/YYYY-MM-DD-<name>/ ✓
-**Branch cleanup:** <feature-branch> deleted ✓
+**Worktree cleanup:** .worktrees/<name> removed, <feature-branch> deleted ✓
 ```
 
 ## Output On Pause
@@ -319,7 +322,7 @@ What would you like to do?
 - Update the task checkbox immediately after completing each task
 - Pause on errors, blockers, or unclear requirements; do not guess
 - Use `contextFiles` from CLI output and do not assume specific file names
-- In a git repo: Step 1 is always checkout default branch + pull; Step 2 is always create working branch + push to remote immediately
+- In a git repo: all implementation work happens inside the change's dedicated worktree at `.worktrees/<name>`; create it (from the default branch) if it doesn't already exist, then confirm the branch is pushed to remote — never checkout a different branch in the primary checkout to do this work
 - Never skip step 9 (pre-commit code review); you MUST spawn a sub-agent to run the `openspec-review-code` skill before every commit, and the primary agent must automatically address all findings from the sub-agent before committing.
 - **NEVER stop after receiving the sub-agent review report.** Do not present the findings list to the user. Do not ask for confirmation. Apply all clearly-correct fixes silently, re-run tests, and continue to commit — all without user interaction. Showing the finding list to the user and waiting is the exact wrong behavior.
 - After all tasks are locally complete, validated, and the pre-commit review is done, always commit + push + open PR before declaring done

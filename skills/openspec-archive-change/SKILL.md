@@ -107,11 +107,16 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    **Single-commit rule:** After the move, stage both the new archive path and the deletion of the original path together before committing. Use `git add openspec/changes/archive/YYYY-MM-DD-<name>` and `git rm -r openspec/changes/<name>` (or equivalent) so that the copy and the delete land in **one commit**. Never commit the copy first and the delete separately — this leaves the repository in a split state between commits.
 
-6. **Prune merged local branches**
+7. **Remove the worktree and prune the merged local branch**
 
-   After the PR is merged and the change has been archived, clean up local git state.
+   After the PR is merged and the change has been archived, clean up the dedicated worktree and local git state. Do this from the primary checkout, not from inside the worktree being removed.
 
-   - Ensure you are on the default branch, or another safe branch, not the feature branch being deleted
+   - Remove the change's dedicated worktree:
+
+     ```bash
+     git worktree remove .worktrees/<name>
+     ```
+
    - Refresh remote-tracking refs:
 
      ```bash
@@ -126,9 +131,9 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    **Safety rules:**
 
-   - Never use force deletion, `git branch -D`, as part of the normal archive flow
-   - If the branch is not fully merged, warn the user and leave it in place
-   - If the feature branch name cannot be determined reliably, tell the user branch pruning is still required and show the cleanup commands instead of guessing
+   - Never use force deletion, `git branch -D` or `git worktree remove --force`, as part of the normal archive flow
+   - If the branch is not fully merged, warn the user and leave the worktree and branch in place
+   - If the feature branch name cannot be determined reliably, tell the user cleanup is still required and show the commands instead of guessing
 
 8. **Display summary**
 
@@ -150,7 +155,7 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 **Schema:** <schema-name>
 **Archived to:** openspec/changes/archive/YYYY-MM-DD-<name>/
 **Specs:** ✓ Synced to main specs (or "No delta specs" or "Sync skipped")
-**Local branches:** ✓ Pruned merged local branches (or "Skipped: branch not identified" / "Skipped: branch not merged")
+**Worktree cleanup:** ✓ Removed .worktrees/<name> and pruned the merged local branch (or "Skipped: branch not identified" / "Skipped: branch not merged")
 
 All artifacts complete. All tasks complete.
 ```
@@ -165,5 +170,5 @@ All artifacts complete. All tasks complete.
 - Show a clear summary of what happened
 - If sync is requested, use an inline subagent to apply delta specs to `openspec/specs/`
 - If delta specs exist, always run the sync assessment and show the combined summary before prompting
-- After a successful archive, prune only merged local branches and stale remote-tracking refs; do not force-delete branches
+- After a successful archive, remove the change's dedicated worktree and prune only merged local branches and stale remote-tracking refs; do not force-remove the worktree or force-delete branches
 - The archive move (copy to new location + deletion of original) must always be a single atomic git commit — never two separate commits

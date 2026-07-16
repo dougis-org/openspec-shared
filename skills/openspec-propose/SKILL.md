@@ -22,7 +22,7 @@ This skill creates:
 
 When ready to implement, run `/opsx:apply`.
 
-Before starting implementation work, you must check out the default branch and pull the latest remote changes so the feature branch starts from the most current state.
+All work on this change — the proposal artifact through implementation — happens inside a dedicated git worktree, never in the primary checkout. This is what lets multiple agents work on different changes from the same repo clone at the same time.
 
 ## Input
 
@@ -79,7 +79,38 @@ The user's request may include:
 
    Record any references provided. They will be written into the `## GitHub Issues` section of `proposal.md` so the PR can automatically close them on merge.
 
-3. **Create the change directory**
+3. **Create a dedicated worktree for this change**
+
+   From the primary checkout, check whether a worktree already exists for `<name>` (for example, started during an explore session):
+
+   ```bash
+   git worktree list
+   ```
+
+   If none exists, fetch the default branch and create one, branching from its current tip:
+
+   ```bash
+   git fetch origin
+   git worktree add ".worktrees/<name>" -b "<name>" "origin/<default-branch>"
+   ```
+
+   Immediately publish the branch so it exists on remote before any work happens on it:
+
+   ```bash
+   git push -u origin "<name>"
+   ```
+
+   If `.worktrees/` is not already listed in `.gitignore`, add it.
+
+   From this point on, run every command and write every file for this change from inside `.worktrees/<name>` — never from the primary checkout:
+
+   ```bash
+   cd ".worktrees/<name>"
+   ```
+
+4. **Create the change directory**
+
+   Run this from inside the worktree created in the previous step:
 
    ```bash
    openspec new change "<name>"
@@ -87,7 +118,7 @@ The user's request may include:
 
    This creates a scaffolded change at `openspec/changes/<name>/` with `.openspec.yaml`.
 
-4. **Get the artifact build order**
+5. **Get the artifact build order**
 
    ```bash
    openspec status --change "<name>" --json
@@ -98,7 +129,7 @@ The user's request may include:
    - `applyRequires`: artifact IDs required before implementation, for example `tasks`
    - `artifacts`: all artifacts with status and dependencies
 
-5. **Create artifacts in sequence until apply-ready**
+6. **Create artifacts in sequence until apply-ready**
 
    Use the todo tracking tool to track progress through the artifacts.
 
@@ -131,7 +162,7 @@ The user's request may include:
 
    If an artifact requires user input because context is unclear, ask for clarification and continue.
 
-6. **Show final status**
+7. **Show final status**
 
    ```bash
    openspec status --change "<name>"
@@ -142,9 +173,10 @@ The user's request may include:
 After completing all artifacts, summarize:
 
 - Change name and location
+- The worktree the change lives in: `.worktrees/<name>`
 - Artifacts created with brief descriptions
 - Readiness status: `All artifacts created. Ready for implementation.`
-- Prompt: `Before implementation, you must run git checkout <default-branch> and git pull --ff-only, then run /opsx:apply or ask me to implement to start working on the tasks.`
+- Prompt: `Ready for implementation from .worktrees/<name> — run /opsx:apply or ask me to implement to start working on the tasks.`
 
 ## Artifact Creation Guidelines
 
@@ -161,4 +193,6 @@ After completing all artifacts, summarize:
 - Always read dependency artifacts before creating a new one
 - If context is critically unclear, ask the user, but prefer reasonable decisions that keep momentum
 - If a change with that name already exists, ask whether to continue it or create a new one
+- Always create or reuse the change's dedicated worktree at `.worktrees/<name>` before creating the change directory, and do all work for the change inside it — never in the primary checkout. Push the branch immediately so it exists on remote.
+- If this change arrived from an explore session that already resolved every open question and the user explicitly said to proceed with the proposal, continue straight through design, specs, and tasks without pausing for a separate human approval step. Otherwise, the proposal still requires explicit human approval before design/specs/tasks/apply proceed.
 - Verify each artifact file exists after writing before proceeding
