@@ -295,6 +295,7 @@ But this summary is optional. Sometimes the thinking IS the value.
 - **Don't rush** - Discovery is thinking time, not task time
 - **Don't force structure** - Let patterns emerge naturally
 - **Don't auto-capture** - Offer to save insights, don't just do it
+- **If you create a new change's artifacts** - follow the same dedicated-worktree convention as the propose skill (`.worktrees/<name>`, branch pushed immediately) rather than writing into the primary checkout
 - **Do visualize** - A good diagram is worth many paragraphs
 - **Do explore the codebase** - Ground discussions in reality
 - **Do question assumptions** - Including the user's and your own

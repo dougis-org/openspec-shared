@@ -12,3 +12,5 @@
 
 .github/instructions/codacy.instructions.md
 .tokensave
+
+.worktrees/

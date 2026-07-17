@@ -99,17 +99,22 @@ flowchart LR
 
 #### Step-by-Step Generation Flow
 
-1.  **Initialize the Change**:
+1.  **Create the change's dedicated worktree, then initialize the change**:
     ```bash
+    git fetch origin
+    git worktree add ".worktrees/<change-name>" -b "<change-name>" "origin/<default-branch>"
+    git push -u origin "<change-name>"
+    cd ".worktrees/<change-name>"
     openspec new change "<change-name>"
     ```
-    This scaffolds the directory `openspec/changes/<change-name>/` with `.openspec.yaml`.
+    This scaffolds the directory `openspec/changes/<change-name>/` with `.openspec.yaml`. Every artifact and, later, every implementation change for this change lives inside `.worktrees/<change-name>` — never in the primary checkout. This lets multiple agents propose and implement different changes from the same repo clone at the same time. Reuse the worktree instead of recreating it if one already exists (e.g. started during an explore session).
 
 2.  **Generate Core Artifacts**:
     Run `openspec status --change "<change-name>" --json` to read the build order, and iteratively create the following files under `openspec/changes/<change-name>/`:
 
     *   **`proposal.md`**: Outlines *why* the change is needed, the problem space (current vs desired behavior, edge cases, assumptions), in/out scope boundaries, risks, open questions, and non-goals.
         *   *Change Control Note*: Include a statement that if the scope changes during implementation, all artifacts must be updated and re-approved before proceeding.
+        *   *Approval*: Normally the proposal requires explicit human approval before design/specs/tasks proceed. The exception: if the change started with explore mode, every open question raised there was resolved, and the user then explicitly says to proceed with the proposal, that instruction counts as approval — continue straight through design, specs, and tasks without an extra pause.
         *   *Task Assignment*: If this is issue-driven, assign the issue to the current owner.
     *   **`design.md`** (Requires `proposal`): Technical design mapping the proposal to implementation decisions. Includes architectural touchpoints, goal/non-goal mappings, architectural decisions (ADRs), functional & non-functional requirement mappings, rollback plans, and an operational blocking policy.
     *   **`specs/**/*.md`** (Requires `proposal`, `design`): Capability specifications detailing exact behavior changes.
@@ -129,13 +134,19 @@ flowchart LR
 **Objective**: Execute the checklist in `tasks.md` sequentially, applying BDD/TDD practices and enforcing code quality via an autonomous pre-commit review.
 
 #### 1. Preparation
-Before making code changes, synchronize with the remote defaults:
+Before making code changes, enter the change's dedicated worktree (created during propose):
 ```bash
-git checkout <default-branch>
-git pull --ff-only
-git checkout -b <feature-branch-name>
-git push -u origin <feature-branch-name>
+git worktree list                              # confirm .worktrees/<change-name> exists
+cd .worktrees/<change-name>
 ```
+If it doesn't exist yet — for example the change predates this convention, or was created manually — create it from the primary checkout first:
+```bash
+git fetch origin
+git worktree add .worktrees/<change-name> -b <feature-branch-name> origin/<default-branch>
+git push -u origin <feature-branch-name>
+cd .worktrees/<change-name>
+```
+Never `git checkout` a different branch in the primary checkout to do this work — that would disrupt any other agent or human using that checkout concurrently.
 
 #### 2. Execution (BDD/TDD Loop)
 For each task:
@@ -297,9 +308,10 @@ gh pr create \
 ```
 *Immediately enable auto-merge* on this doc PR (`gh pr merge <DOC-PR-URL> --auto --merge`) and monitor it until it is merged.
 
-#### 5. Local Branch Cleanup
-Once both the implementation PR and the doc PR are merged, prune all local branches to keep the workspace clean:
+#### 5. Worktree and Local Branch Cleanup
+Once both the implementation PR and the doc PR are merged, remove the change's dedicated worktree and prune local branches to keep the workspace clean:
 ```bash
+git worktree remove .worktrees/<change-name>
 git fetch --prune
 git branch -d <feature-branch-name> doc/archive-YYYY-MM-DD-<change-name>
 ```
