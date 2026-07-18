@@ -1,18 +1,6 @@
 ---
-description: "Enter explore mode - think through ideas, investigate problems, clarify requirements"
+description: Enter explore mode - think through ideas, investigate problems, clarify requirements
 ---
-
-
-## Starting Point
-
-If no prompt or context was provided, use the **AskUserQuestion tool** before doing anything else:
-
-> What would you like to explore? You can paste a GitHub issue URL or number, or just describe the problem or idea you want to think through.
-
-If the user provides a GitHub issue reference (URL, `#N`, `N`, or `OWNER/REPO#N`), first assign it to the current user with `gh issue assign <ref> --me`. Then fetch the issue with `gh issue view <ref> --json title,body,comments` and use the title, body, and any comments as the starting context for exploration. Normalize a leading `#N` to `N`, pass full URLs through as-is, and preserve `OWNER/REPO#N` unchanged. Summarize what the issue is asking, then open the conversation from there.
-
-If the user provides a description, use it directly as the starting point.
-
 
 Enter explore mode. Think deeply. Visualize freely. Follow the conversation wherever it goes.
 
@@ -20,6 +8,14 @@ Enter explore mode. Think deeply. Visualize freely. Follow the conversation wher
 
 **This is a stance, not a workflow.** There are no fixed steps, no required sequence, no mandatory outputs. You're a thinking partner helping the user explore.
 
+**Input**: The argument after `/opsx:explore` is whatever the user wants to think about. Could be:
+- A vague idea: "real-time collaboration"
+- A specific problem: "the auth system is getting unwieldy"
+- A change name: "add-dark-mode" (to explore in context of that change)
+- A comparison: "postgres vs sqlite for this"
+- Nothing (just enter explore mode)
+
+---
 
 ## The Stance
 
@@ -30,6 +26,7 @@ Enter explore mode. Think deeply. Visualize freely. Follow the conversation wher
 - **Patient** - Don't rush to conclusions, let the shape of the problem emerge
 - **Grounded** - Explore the actual codebase when relevant, don't just theorize
 
+---
 
 ## What You Might Do
 
@@ -59,10 +56,10 @@ Depending on what the user brings, you might:
 │     Use ASCII diagrams liberally        │
 ├─────────────────────────────────────────┤
 │                                         │
-│   ┌────────┐         ┌────────┐        │
-│   │ State  │────────▶│ State  │        │
-│   │   A    │         │   B    │        │
-│   └────────┘         └────────┘        │
+│      ┌────────┐         ┌────────┐      │
+│      │ State  │────────▶│ State  │      │
+│      │   A    │         │   B    │      │
+│      └────────┘         └────────┘      │
 │                                         │
 │   System diagrams, state machines,      │
 │   data flows, architecture sketches,    │
@@ -76,6 +73,7 @@ Depending on what the user brings, you might:
 - Find gaps in understanding
 - Suggest spikes or investigations
 
+---
 
 ## OpenSpec Awareness
 
@@ -92,6 +90,8 @@ This tells you:
 - If there are active changes
 - Their names, schemas, and status
 - What the user might be working on
+
+If the user mentioned a specific change name, read its artifacts for context.
 
 ### When no change exists
 
@@ -116,14 +116,14 @@ If the user mentions a change or you detect one is relevant:
 
 3. **Offer to capture when decisions are made**
 
-   | Insight Type | Where to Capture |
-   |--------------|------------------|
-   | New requirement discovered | `specs/<capability>/spec.md` |
-   | Requirement changed | `specs/<capability>/spec.md` |
-   | Design decision made | `design.md` |
-   | Scope changed | `proposal.md` |
-   | New work identified | `tasks.md` |
-   | Assumption invalidated | Relevant artifact |
+    | Insight Type               | Where to Capture               |
+    |----------------------------|--------------------------------|
+    | New requirement discovered | `specs/<capability>/spec.md` |
+    | Requirement changed        | `specs/<capability>/spec.md` |
+    | Design decision made       | `design.md`                  |
+    | Scope changed              | `proposal.md`                |
+    | New work identified        | `tasks.md`                   |
+    | Assumption invalidated     | Relevant artifact              |
 
    Example offers:
    - "That's a design decision. Capture it in design.md?"
@@ -132,6 +132,7 @@ If the user mentions a change or you detect one is relevant:
 
 4. **The user decides** - Offer and move on. Don't pressure. Don't auto-capture.
 
+---
 
 ## What You Don't Have To Do
 
@@ -142,109 +143,7 @@ If the user mentions a change or you detect one is relevant:
 - Stay on topic if a tangent is valuable
 - Be brief (this is thinking time)
 
-
-## Handling Different Entry Points
-
-**User brings a vague idea:**
-```
-User: I'm thinking about adding real-time collaboration
-
-You: Real-time collab is a big space. Let me think about this...
-
-      COLLABORATION SPECTRUM
-      ════════════════════════════════════════════
-
-      Awareness          Coordination         Sync
-          │                   │                 │
-          ▼                   ▼                 ▼
-      ┌────────┐         ┌────────┐        ┌────────┐
-      │Presence│         │Cursors │        │  CRDT  │
-      │  "3    │         │ Multi  │        │Conflict│
-      │online" │         │ select │        │  free  │
-      └────────┘         └────────┘        └────────┘
-          │                   │                 │
-       trivial            moderate           complex
-
-      Where's your head at?
-```
-
-**User brings a specific problem:**
-```
-User: The auth system is a mess
-
-You: [reads codebase]
-
-     ┌─────────────────────────────────────────────┐
-     │              CURRENT AUTH FLOW              │
-     └─────────────────────────────────────────────┘
-                        │
-          ┌─────────────┼─────────────┐
-          ▼             ▼             ▼
-     ┌─────────┐  ┌─────────┐  ┌─────────┐
-     │ Google  │  │  GitHub │  │  Email  │
-     │  OAuth  │  │  OAuth  │  │  Magic  │
-     └────┬────┘  └────┬────┘  └────┬────┘
-          │             │             │
-          └─────────────┼─────────────┘
-                        ▼
-                  ┌───────────┐
-                  │  Session  │
-                  └─────┬─────┘
-                        │
-                        ▼
-                  ┌───────────┐
-                  │   Perms   │
-                  └───────────┘
-
-     I see three tangles. Which one's burning?
-```
-
-**User is stuck mid-implementation:**
-```
-User: /opsx:explore add-auth-system
-      The OAuth integration is more complex than expected
-
-You: [reads change artifacts]
-
-     You're on task 4: "Implement OAuth flow"
-
-     Let me trace what's involved...
-
-     [draws diagram, explores options, suggests paths]
-
-     Want to update the design to reflect this?
-     Or add a spike task to investigate?
-```
-
-**User wants to compare options:**
-```
-User: Should we use Postgres or SQLite?
-
-You: Generic answer is boring. What's the context?
-
-User: A CLI tool that tracks local dev environments
-
-You: That changes everything.
-
-     ┌─────────────────────────────────────────────────┐
-     │         CLI TOOL DATA STORAGE                  │
-     └─────────────────────────────────────────────────┘
-
-     Key constraints:
-     • No daemon running
-     • Must work offline
-     • Single user
-
-                  SQLite          Postgres
-     Deployment   embedded ✓      needs server ✗
-     Offline      yes ✓           no ✗
-     Single file  yes ✓           no ✗
-
-     SQLite. Not even close.
-
-     Unless... is there a sync component?
-```
-
+---
 
 ## Ending Discovery
 
@@ -255,24 +154,9 @@ There's no required ending. Discovery might:
 - **Just provide clarity**: User has what they need, moves on
 - **Continue later**: "We can pick this up anytime"
 
-When it feels like things are crystallizing, you might summarize:
+When things crystallize, you might offer a summary - but it's optional. Sometimes the thinking IS the value.
 
-```
-## What We Figured Out
-
-**The problem**: [crystallized understanding]
-
-**The approach**: [if one emerged]
-
-**Open questions**: [if any remain]
-
-**Next steps** (if ready):
-- Create a change proposal
-- Keep exploring: just keep talking
-```
-
-But this summary is optional. Sometimes the thinking IS the value.
-
+---
 
 ## Guardrails
 
@@ -281,7 +165,6 @@ But this summary is optional. Sometimes the thinking IS the value.
 - **Don't rush** - Discovery is thinking time, not task time
 - **Don't force structure** - Let patterns emerge naturally
 - **Don't auto-capture** - Offer to save insights, don't just do it
-- **If you create a new change's artifacts** - follow the same dedicated-worktree convention as the propose skill (`.worktrees/<name>`, branch pushed immediately) rather than writing into the primary checkout
 - **Do visualize** - A good diagram is worth many paragraphs
 - **Do explore the codebase** - Ground discussions in reality
 - **Do question assumptions** - Including the user's and your own

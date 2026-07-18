@@ -1,8 +1,12 @@
 ---
-name: "OPSX: Propose"
-description: Propose a new change - create it and generate all artifacts in one step
-category: Workflow
-tags: [workflow, artifacts, experimental]
+name: openspec-propose
+description: Propose a new change with all artifacts generated in one step. Use when the user wants to quickly describe what they want to build and get a complete proposal with design, specs, and tasks ready for implementation.
+license: MIT
+compatibility: Requires openspec CLI.
+metadata:
+  author: openspec
+  version: "1.0"
+  generatedBy: "1.3.1"
 ---
 
 Propose a new change - create the change and generate all artifacts in one step.
@@ -16,11 +20,11 @@ When ready to implement, run /opsx:apply
 
 ---
 
-**Input**: The argument after `/opsx:propose` is the change name (kebab-case), OR a description of what the user wants to build.
+**Input**: The user's request should include a change name (kebab-case) OR a description of what they want to build.
 
 **Steps**
 
-1. **If no input provided, ask what they want to build**
+1. **If no clear input provided, ask what they want to build**
 
    Use the **AskUserQuestion tool** (open-ended, no preset options) to ask:
    > "What change do you want to work on? Describe what you want to build or fix."
@@ -29,15 +33,29 @@ When ready to implement, run /opsx:apply
 
    **IMPORTANT**: Do NOT proceed without understanding what the user wants to build.
 
-2. **Create the change directory**
-   ```bash
-   openspec new change "<name>"
-   ```
-   This creates a scaffolded change at `openspec/changes/<name>/` with `.openspec.yaml`.
+2. **Create a dedicated worktree for this change**
 
-3. **Get the artifact build order**
+   All subsequent work must happen inside this worktree — never in the primary checkout.
+
+   a. Create a new branch and worktree:
+      ```bash
+      git worktree add .worktrees/<name> -b opsx/<name>
+      ```
+      This creates `.worktrees/<name>/` as an isolated checkout on branch `opsx/<name>`.
+
+   b. Create the change directory **inside the worktree**:
+      ```bash
+      cd .worktrees/<name> && openspec new change "<name>"
+      ```
+      This creates `openspec/changes/<name>/` with `.openspec.yaml` inside the worktree.
+
+   c. Announce: "Working in worktree `.worktrees/<name>` on branch `opsx/<name>`."
+
+   **All file reads and writes for this change must use paths relative to `.worktrees/<name>/`.**
+
+3. **Get the artifact build order** (run from `.worktrees/<name>/`)
    ```bash
-   openspec status --change "<name>" --json
+   cd .worktrees/<name> && openspec status --change "<name>" --json
    ```
    Parse the JSON to get:
    - `applyRequires`: array of artifact IDs needed before implementation (e.g., `["tasks"]`)
@@ -50,10 +68,10 @@ When ready to implement, run /opsx:apply
    Loop through artifacts in dependency order (artifacts with no pending dependencies first):
 
    a. **For each artifact that is `ready` (dependencies satisfied)**:
-      - Get instructions:
-        ```bash
-        openspec instructions <artifact-id> --change "<name>" --json
-        ```
+       - Get instructions (run from `.worktrees/<name>/`):
+         ```bash
+         cd .worktrees/<name> && openspec instructions <artifact-id> --change "<name>" --json
+         ```
       - The instructions JSON includes:
         - `context`: Project background (constraints for you - do NOT include in output)
         - `rules`: Artifact-specific rules (constraints for you - do NOT include in output)
@@ -67,17 +85,17 @@ When ready to implement, run /opsx:apply
       - Show brief progress: "Created <artifact-id>"
 
    b. **Continue until all `applyRequires` artifacts are complete**
-      - After creating each artifact, re-run `openspec status --change "<name>" --json`
-      - Check if every artifact ID in `applyRequires` has `status: "done"` in the artifacts array
-      - Stop when all `applyRequires` artifacts are done
+       - After creating each artifact, re-run `cd .worktrees/<name> && openspec status --change "<name>" --json`
+       - Check if every artifact ID in `applyRequires` has `status: "done"` in the artifacts array
+       - Stop when all `applyRequires` artifacts are done
 
    c. **If an artifact requires user input** (unclear context):
       - Use **AskUserQuestion tool** to clarify
       - Then continue with creation
 
-5. **Show final status**
+5. **Show final status** (run from `.worktrees/<name>/`)
    ```bash
-   openspec status --change "<name>"
+   cd .worktrees/<name> && openspec status --change "<name>"
    ```
 
 **Output**
@@ -86,7 +104,7 @@ After completing all artifacts, summarize:
 - Change name and location
 - List of artifacts created with brief descriptions
 - What's ready: "All artifacts created! Ready for implementation."
-- Prompt: "Run `/opsx:apply` to start implementing."
+- Prompt: "Run `/opsx:apply` or ask me to implement to start working on the tasks."
 
 **Artifact Creation Guidelines**
 
@@ -104,3 +122,5 @@ After completing all artifacts, summarize:
 - If context is critically unclear, ask the user - but prefer making reasonable decisions to keep momentum
 - If a change with that name already exists, ask if user wants to continue it or create a new one
 - Verify each artifact file exists after writing before proceeding to next
+- **NEVER write change artifacts or code to the primary checkout** — all reads/writes go to `.worktrees/<name>/`
+- If `.worktrees/<name>/` doesn't exist when resuming, re-create it with `git worktree add .worktrees/<name> opsx/<name>` (branch already exists)
