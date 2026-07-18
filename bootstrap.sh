@@ -8,8 +8,7 @@
 # Options:
 #   --copy    Copy assets instead of creating symlinks (useful when symlinks are unavailable)
 #
-# Supported agent surfaces (default): .agents/  .codex/  .claude/  .gemini/  .github/
-# Experimental surface (.agent/) is NOT wired by default.
+# Supported agent surfaces: .agents/  .codex/  .claude/  .gemini/  .github/  .agent/
 #
 # The script is idempotent: re-running it after a submodule bump refreshes all links.
 # Existing symlinks at managed paths are replaced. Plain files or directories that the
@@ -136,28 +135,33 @@ link_or_copy() {
 echo "==> Wiring agent surfaces"
 
 # .codex/
-link_or_copy "skills"            ".codex/skills"
+link_or_copy "skills"                      ".codex/skills"
 
-# .claude/
-link_or_copy "skills"            ".claude/skills"
-link_or_copy ".claude/commands"  ".claude/commands"
+# .claude/ — prefer per-surface skills dir, fall back to generic skills/
+link_or_copy ".claude/skills"              ".claude/skills"
+link_or_copy ".claude/commands"            ".claude/commands"
 
-# .gemini/
-link_or_copy "skills"            ".gemini/skills"
-link_or_copy ".gemini/commands"  ".gemini/commands"
+# .gemini/ — prefer per-surface skills dir, fall back to generic skills/
+link_or_copy ".gemini/skills"              ".gemini/skills"
+link_or_copy ".gemini/commands"            ".gemini/commands"
 
 # .agents/ — Antigravity IDE surface
-link_or_copy "skills"            ".agents/skills"
+link_or_copy "skills"                      ".agents/skills"
+
+# .agent/ — Antigravity CLI surface (skills + workflows)
+link_or_copy ".agent/skills"               ".agent/skills"
+link_or_copy ".agent/workflows"            ".agent/workflows"
 
 # .github/ — agent surfaces only; workflows are downstream-repo-owned
-link_or_copy "skills"            ".github/skills"
-link_or_copy ".github/prompts"   ".github/prompts"
+link_or_copy ".github/skills"              ".github/skills"
+link_or_copy ".github/prompts"             ".github/prompts"
 
 echo "==> Wiring openspec assets"
 
 mkdir -p openspec
-link_or_copy "templates"   "openspec/templates"
-link_or_copy "config.yaml" "openspec/config.yaml"
+link_or_copy "templates"                   "openspec/templates"
+link_or_copy "openspec/schemas"            "openspec/schemas"
+link_or_copy "config.yaml"                 "openspec/config.yaml"
 
 echo "==> Wiring scripts"
 

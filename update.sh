@@ -61,7 +61,7 @@ if ! $NO_COMMIT; then
     echo "==> Staging submodule bump"
     git add "$SUBMODULE_PATH"
     echo "==> Committing submodule bump"
-    git commit -m "chore: bump openspec-shared to latest"
+    git commit -m "chore: bump openspec-shared to latest and refresh schema symlinks"
     echo ""
     echo "    Commit created. Run 'git push' when ready to share."
   fi
