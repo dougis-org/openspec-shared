@@ -197,6 +197,7 @@ merge when CI passes" — keep monitoring and act on whatever comes up.
 
 ## Guardrails
 
+- **Iterate at most twice** — after two fix-and-push iterations, the third assessment is final: if it still shows failing tests, open threads, or blocking checks, stop and escalate to the user with the remaining items listed. Never start a fourth iteration.
 - **Build and tests are always first** — no PR comment work starts until the
   local build and full test suite are green.
 - **Comments are second** — no secondary check work starts until all comment

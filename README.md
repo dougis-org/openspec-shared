@@ -13,10 +13,11 @@ used across all dougis-org projects.
 | [`USAGE.md`](USAGE.md) | Comprehensive guide to the custom feedback-loop SDD workflow |
 | `config.yaml` | OpenSpec workflow configuration |
 | `templates/` | Proposal, design, spec, and tasks templates |
-| `skills/` | Five OpenSpec agent skills (VS Code Copilot / GitHub Copilot) |
+| `skills/` | Source of truth for all agent skills (copied into every agent surface) |
 | `init-change.sh` | POSIX shell script to scaffold a new change |
-| `bootstrap.sh` | Bootstrap script — wires shared assets into a downstream repo |
-| `update.sh` | One-command update — pulls latest submodule, commits the bump, and refreshes all links |
+| `bootstrap.sh` | Bootstrap script — copies shared assets into a downstream repo |
+| `sync-surfaces.sh` | Maintainer script — regenerates per-surface skills and `/opsx` command wrappers from `skills/` |
+| `update.sh` | One-command update — pulls latest submodule, commits the bump, and refreshes all copies |
 
 ---
 
@@ -67,21 +68,12 @@ sh .github/openspec-shared/bootstrap.sh
 The script:
 - initializes or updates the submodule
 - creates the required directories
-- creates symlinks for all supported agent surfaces (`.codex/`, `.claude/`, `.gemini/`, `.github/`)
-- links `openspec/templates`, `openspec/config.yaml`, and `scripts/init-change.sh`
+- copies assets for all supported agent surfaces (`.codex/`, `.claude/`, `.gemini/`, `.github/`)
+- copies `openspec/templates`, `openspec/schemas`, `openspec/config.yaml`, and `scripts/init-change.sh`
 
-It is safe to re-run after bumping the submodule — existing symlinks are replaced.
+Assets are always copied, never symlinked, so they work in git worktrees and on filesystems without symlink support. It is safe to re-run after bumping the submodule — existing files, directories, and symlinks at managed paths are replaced.
 
-#### Copy mode (optional)
-
-If symlinks are unavailable or undesirable in your environment, use copy mode:
-
-```sh
-sh .github/openspec-shared/bootstrap.sh --copy
-```
-
-Copied assets do not update automatically. After bumping the submodule, re-run bootstrap
-with `--copy` to refresh the copies.
+Copies do not update automatically. After bumping the submodule, re-run bootstrap to refresh them. (`--copy` is still accepted but is now a no-op.)
 
 ### Step 3 — Commit
 
@@ -157,7 +149,7 @@ sh .github/openspec-shared/update.sh
 This single command:
 1. Pulls the latest `openspec-shared` commit from the remote
 2. Stages and commits the submodule pointer bump (`chore: bump openspec-shared to latest`)
-3. Re-runs `bootstrap.sh` to refresh all symlinks (or copies)
+3. Re-runs `bootstrap.sh` to refresh all copied assets
 
 Then push when ready:
 
@@ -169,8 +161,8 @@ git push
 
 | Flag | Effect |
 | ---- | ------ |
-| `--copy` | Pass through to bootstrap — copy assets instead of symlinks |
-| `--no-commit` | Refresh links without creating a git commit (stage/commit manually) |
+| `--copy` | Accepted for backward compatibility; bootstrap always copies |
+| `--no-commit` | Refresh copies without creating a git commit (stage/commit manually) |
 
 #### Manual alternative
 
@@ -182,7 +174,7 @@ git add .github/openspec-shared
 git commit -m "chore: bump openspec-shared to latest"
 git push
 
-# Refresh symlinks / copies
+# Refresh copied assets
 sh .github/openspec-shared/bootstrap.sh
 ```
 
@@ -202,7 +194,7 @@ If you already cloned without `--recurse-submodules`, initialise manually:
 git submodule update --init
 ```
 
-After initialising, run bootstrap to ensure all links are in place:
+After initialising, run bootstrap to ensure all copied assets are in place:
 
 ```sh
 sh .github/openspec-shared/bootstrap.sh

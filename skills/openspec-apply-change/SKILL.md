@@ -151,48 +151,33 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - **REQUIRED:** If `proposal.md` lists any GitHub issue references, the PR body MUST include the closing-keywords block. Never open a PR against an issue-driven change without it.
    - Open a PR from the working branch to the default branch. Include the closing-keywords block at the end of the PR body so GitHub automatically closes the linked issues on merge.
    - Announce the PR URL
-   - **Immediately** enable auto-merge on the PR: `gh pr merge <PR-URL> --auto --merge`. **NEVER** use `--admin` to force the merge.
-   - Announce that auto-merge has been enabled — the PR will merge automatically once all required checks pass and no blocking reviews remain. You must ensure all PR comments are addressed and threads are resolved to allow the process to progress.
-   - **Wait 3 minutes** before doing anything else — this gives CI time to start and reviewers time to leave early comments
+   - Spawn a sub-agent to run `pr-review-toolkit:review-pr` in parallel with the CI watch below. Enable auto-merge (`gh pr merge <PR-URL> --auto --merge`, **NEVER** `--admin`) only after review-pr reports zero findings and no review thread is unresolved.
+   - Do not sleep. Start `gh pr checks <PR-URL> --required --watch --fail-fast` immediately; it returns on the first failure or when all required checks finish.
 
 11. **PR review and CI loop** *(iterate until the PR merges)*
 
-   Repeat the following cycle until the PR is detected as merged. Do not wait for a human to report the merge or to flag new comments — poll for both autonomously after each iteration.
+   Repeat until the PR is detected as merged. Never wait for a human to report the merge or new comments.
 
-   **11a. Assess current state**
+   **11a. Assess current state** *(run in parallel)*
 
-   Run both checks in parallel:
+   - `gh pr checks <PR-URL> --required --json name,bucket,link` — required CI checks (`bucket` is `pass`, `fail`, `pending`, `skipping` or `cancel`)
+   - `gh api graphql -f query='{ repository(owner:"<owner>", name:"<repo>") { pullRequest(number:<num>) { reviewThreads(first:100) { pageInfo { hasNextPage endCursor } nodes { id isResolved isOutdated path comments(last:1) { nodes { body author { login } createdAt } } } } } } }'` — paginate with `after:"<endCursor>"` while `hasNextPage` is `true`
 
-   - `gh pr checks <PR-URL> --json isRequired,state,name` — list all CI check statuses
-   - `gh api graphql -f query='{ repository(owner:"<owner>", name:"<repo>") { pullRequest(number:<num>) { reviewThreads(first:100) { pageInfo { hasNextPage endCursor } nodes { id isResolved comments(last:1) { nodes { body author { login } createdAt } } } } } } }'` — list all review threads with their resolved status and latest comment
+   **11b. Address all open issues in one pass**
 
-   If `pageInfo.hasNextPage` is `true`, paginate using `after:"<endCursor>"` until all threads are fetched.
+   - For each required check with `bucket: "fail"`: `gh run view <run-id> --log-failed`, diagnose, fix in code.
+   - For each unresolved thread: implement the change, or reply politely with evidence if unclear or out of scope.
 
-   **11b. Address all open issues** *(blocking CI failures and review comments together)*
+   Run step 9 (pre-commit code review), run local validation, then commit and push once. Immediately reply to and resolve each addressed thread: `gh api graphql -f query='mutation { resolveReviewThread(input: { threadId: "<thread-id>" }) { thread { id isResolved } } }'`. Then re-run `gh pr checks <PR-URL> --required --watch --fail-fast`.
 
-   Gather every problem in one pass:
+   **Iteration cap:** count each fix-and-push cycle. After two, the next assessment (11a plus review-pr) is the third review; if it still shows failing required checks, unresolved threads, or findings, stop and escalate to the user with the remaining items listed. Do not start a fourth iteration.
 
-   - For each **failing REQUIRED CI check** (`isRequired: true` and `state: "FAILING"`): read the failure output (`gh run view <run-id> --log-failed`), diagnose, and fix in code. Ignore failing checks that are not required.
-   - For each **unresolved review thread**: read the latest comment body, and either implement the requested change or draft a polite reply if the request is unclear or out of scope.
+   **11c. Check for merge**
 
-   Once all fixes and replies are ready, **run step 9 (pre-commit code review) before committing** — the review requirement applies to every commit, including fixes made during the PR loop. Then **commit everything and push once**. Batching into a single push minimises unnecessary CI runs and wait time.
-
-   After pushing, **wait 3 minutes** to let CI re-trigger and allow addressed threads to auto-resolve.
-
-   After the 3-minute wait, re-run the GraphQL query from 11a; for any thread you addressed that still shows `isResolved: false`, resolve it explicitly:
-
-   Run this via: `gh api graphql -f query='mutation { resolveReviewThread(input: { threadId: "<thread-id>" }) { thread { id isResolved } } }'`
-
-   Proceed to 11c.
-
-   **11c. Poll for merge**
-
-   After each iteration, poll: `gh pr view <PR-URL> --json state,mergedAt`.
-   - `MERGED` — exit the loop and proceed to post-merge steps
-   - `CLOSED` — exit the loop and notify the user that the PR was closed without merging; do not proceed to post-merge steps
+   `gh pr view <PR-URL> --json state,mergedAt`:
+   - `MERGED` — proceed to post-merge steps
+   - `CLOSED` — notify the user; skip post-merge steps
    - `OPEN` — return to 11a
-
-   Do not wait for a human to report the merge or closure — detect it autonomously.
 
 12. **Post-merge steps** *(after PR merges)*
 
@@ -265,11 +250,9 @@ Auto-merge: enabled ✓
   Thread: "<comment body>" — change implemented — fix ready
 
 → All fixes batched — committing and pushing once
-  Waiting 3 minutes for CI to re-trigger and comments to auto-resolve...
-
-→ Re-checking state after wait
-  Thread "<comment body>" still open — resolving via GraphQL resolveReviewThread
+  Thread "<comment body>" — replied and resolving via GraphQL resolveReviewThread
   ✓ Thread resolved
+→ Re-watching required checks (gh pr checks --watch --fail-fast)
 
 **CI checks:** 3 passing ✓
 **Open threads:** 0 ✓
@@ -326,13 +309,13 @@ What would you like to do?
 - Never skip step 9 (pre-commit code review); you MUST spawn a sub-agent to run the `openspec-review-code` skill before every commit, and the primary agent must automatically address all findings from the sub-agent before committing.
 - **NEVER stop after receiving the sub-agent review report.** Do not present the findings list to the user. Do not ask for confirmation. Apply all clearly-correct fixes silently, re-run tests, and continue to commit — all without user interaction. Showing the finding list to the user and waiting is the exact wrong behavior.
 - After all tasks are locally complete, validated, and the pre-commit review is done, always commit + push + open PR before declaring done
-- After opening a PR, immediately enable auto-merge, THEN wait 3 minutes before inspecting comments or checks.
-- After every push, always wait 3 minutes before re-assessing — lets CI re-trigger and auto-resolve stale comment threads
-- If a review thread you addressed is still open after the 3-minute wait, resolve it explicitly via the GitHub GraphQL `resolveReviewThread` mutation — never leave addressed threads dangling
+- After opening a PR, never sleep: start `gh pr checks --required --watch --fail-fast` and the `pr-review-toolkit:review-pr` sub-agent immediately. Enable auto-merge only after review-pr reports zero findings and no thread is unresolved.
+- After every push, reply to and resolve each addressed review thread immediately via the GitHub GraphQL `resolveReviewThread` mutation — never leave addressed threads dangling
+- **Iterate at most twice.** After two fix-and-push iterations, run a third review; if review-pr findings, required checks, or review threads still raise issues, stop, escalate to the user with the remaining items listed, and wait for guidance. Never start a fourth iteration.
 - Always paginate review thread queries when `pageInfo.hasNextPage` is `true` — never assume 100 threads is sufficient without checking
 - In each loop iteration, fix all **required** CI failures and address all open review comments before pushing. Do not exit the loop while any required checks fail or threads are unresolved.
 - Monitor comments and CI in a single unified loop (step 10); after each iteration poll `gh pr view --json state` autonomously — never wait for a human to report new comments or that the PR has merged
-- Never force-merge using `--admin`; enable auto-merge immediately upon PR creation and let GitHub merge when all comments are addressed and threads are resolved.
+- Never force-merge using `--admin`; enable auto-merge once the review gate passes and let GitHub merge when all required checks pass and threads are resolved.
 - Post-merge archive must be a single atomic commit: copy to archive location and delete original path must be staged together, never split across two commits
 
 ## Fluid Workflow Integration

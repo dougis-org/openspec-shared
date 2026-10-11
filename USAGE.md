@@ -241,21 +241,17 @@ sequenceDiagram
 #### PR Life Cycle Rules
 
 1.  **Open PR**: Open a PR from the working branch to `<default-branch>`. If the proposal was issue-driven, write `Closes #N` explicitly in the PR body.
-2.  **Enable Auto-Merge**: **Immediately** run:
+2.  **Start Review and CI Watch (no fixed sleeps)**: Immediately run in parallel a sub-agent for `pr-review-toolkit:review-pr` and:
+    ```bash
+    gh pr checks <PR-URL> --required --watch --fail-fast
+    ```
+3.  **Triage Loop**: Each iteration, gather all signals at once — failing required checks (`gh pr checks <PR-URL> --required --json name,bucket,link`), unresolved review threads (GraphQL `reviewThreads`; `gh pr view --json` has no such field), and review-pr findings. Fix everything in one commit, run local validation, push once, then reply to and resolve each addressed thread immediately.
+    *   **Iteration cap**: iterate at most twice. If the third review still raises issues, stop and escalate to the user with the remaining items listed.
+4.  **Enable Auto-Merge**: Only after review-pr reports zero findings and no thread is unresolved:
     ```bash
     gh pr merge <PR-URL> --auto --merge
     ```
     *Never* use `--admin` or force-merge. Allow quality gates to pass naturally.
-3.  **Comment Resolution Loop**:
-    *   Poll for new PR comments every 180 seconds.
-    *   When feedback is left, address it immediately in the code, run local validation, commit, and push.
-    *   Ensure all comment threads are marked resolved to unblock the merge.
-4.  **CI Check Resolution Loop**:
-    *   Poll for CI check statuses using:
-        ```bash
-        gh pr checks <PR-URL> --json isRequired,state
-        ```
-    *   If a required check fails, diagnose the problem, write a local fix, run local validation, and push.
 5.  **Merge Polling**:
     *   Check the state of the PR:
         ```bash

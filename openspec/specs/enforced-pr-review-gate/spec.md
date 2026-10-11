@@ -17,7 +17,7 @@ Before any implementation work begins, the agent SHALL verify that the `pr-revie
 After a PR is opened, the agent SHALL run a full review via `pr-review-toolkit:review-pr` as a sub-agent and require all findings to be addressed before enabling auto-merge.
 
 #### Scenario: Review runs after PR is opened
-- **WHEN** the PR is opened and 60 seconds have elapsed (to allow CI to start)
+- **WHEN** the PR is opened
 - **THEN** the agent spawns a sub-agent running `pr-review-toolkit:review-pr` against the open PR
 
 #### Scenario: Findings addressed before auto-merge
@@ -32,9 +32,9 @@ After a PR is opened, the agent SHALL run a full review via `pr-review-toolkit:r
 - **WHEN** the PR is opened
 - **THEN** the agent does NOT enable auto-merge until the review gate has passed; `gh pr merge --auto` is not called at PR open time
 
-#### Scenario: Review loop stalls — agent reports and waits
-- **WHEN** findings persist after three or more review-fix-push iterations with no progress
-- **THEN** the agent reports the stall to the user with the remaining findings listed, and waits for human guidance before continuing
+#### Scenario: Iteration cap — agent escalates after two fix iterations
+- **WHEN** two review-fix-push iterations have completed and the third review (review-pr findings, required checks, or review threads) still raises issues
+- **THEN** the agent stops, escalates to the user with the remaining items listed, and waits for human guidance without starting a fourth iteration
 
 ---
 

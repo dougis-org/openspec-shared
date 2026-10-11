@@ -7,11 +7,11 @@
 # This script:
 #   1. Pulls the latest openspec-shared submodule commit from the remote
 #   2. Stages and commits the submodule bump (with an optional --no-commit flag to skip)
-#   3. Re-runs bootstrap to refresh all symlinks / copies
+#   3. Re-runs bootstrap to refresh all copied assets
 #
 # Options:
-#   --copy        Pass through to bootstrap: copy assets instead of creating symlinks
-#   --no-commit   Update the submodule and refresh links, but do NOT create a git commit
+#   --copy        Accepted for backward compatibility (bootstrap always copies)
+#   --no-commit   Update the submodule and refresh copies, but do NOT create a git commit
 #   -h|--help     Show this help text and exit
 #
 
@@ -61,7 +61,7 @@ if ! $NO_COMMIT; then
     echo "==> Staging submodule bump"
     git add "$SUBMODULE_PATH"
     echo "==> Committing submodule bump"
-    git commit -m "chore: bump openspec-shared to latest and refresh schema symlinks"
+    git commit -m "chore: bump openspec-shared to latest and refresh copied assets"
     echo ""
     echo "    Commit created. Run 'git push' when ready to share."
   fi

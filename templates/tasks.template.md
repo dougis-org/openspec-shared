@@ -48,14 +48,16 @@ Use the project's documented commands for each of the above (see project README 
 - [ ] Run the required pre-commit review from `skills/openspec-apply-change/SKILL.md` before committing, ensuring the primary agent automatically addresses all findings from the sub-agent
 - [ ] Commit all changes to the working branch and push to remote
 - [ ] Open PR from working branch to `<default-branch>`
-- [ ] Wait 180 seconds for CI to start and agentic reviewers to post their comments
-- [ ] Enable auto-merge: `gh pr merge <PR-URL> --auto --merge`
-- [ ] **Iterate until merged** — repeat the following priority loop continuously until `gh pr view <PR-URL> --json state` returns `MERGED`; if it returns `CLOSED` exit and notify the user — **never wait for a human to report the merge; never force-merge**:
-  1. **Build and tests** — run all steps in [Remote push validation]; fix any failures, commit, and push before doing anything else in this iteration
-  2. **PR comments** — poll for unresolved review threads; for every unresolved thread, address the feedback, commit fixes, run [Remote push validation], push, wait 180 seconds; continue until all threads are resolved
-  3. **CI check failures** — only after all comments are resolved, poll for failing required checks; fix each failure, commit, run [Remote push validation], push, wait 180 seconds; then restart this loop from step 1
+- [ ] Open the PR, then immediately start both in parallel (no fixed sleeps): (a) spawn a sub-agent to run `pr-review-toolkit:review-pr`; (b) run `gh pr checks <PR-URL> --required --watch --fail-fast` (returns on the first failure or when all required checks finish)
+- [ ] **Triage loop — repeat until review-pr reports zero findings, all required checks pass, and no review thread is unresolved.** Each iteration, collect every signal at once, then fix everything in a single commit:
+  1. **Failing required checks** — `gh pr checks <PR-URL> --required --json name,bucket,link`; for failures, `gh run view <run-id> --log-failed`
+  2. **Unresolved review threads** — `gh api graphql` on `pullRequest.reviewThreads` (`id isResolved isOutdated path comments`), paginating with `pageInfo.endCursor`. (`gh pr view --json` has no `reviewThreads` field.)
+  3. **review-pr findings** — from the sub-agent started above
+  Then: run [Remote push validation], push once, reply to and resolve each addressed thread immediately (`resolveReviewThread` mutation), and re-run `gh pr checks ... --watch --fail-fast`. **Iterate at most twice.** After two fix-and-push iterations, run a third review; if it (review-pr findings, required checks, or review threads) still raises issues, stop, escalate to the user with the remaining items listed, and wait for guidance. Do not start a fourth iteration.
+- [ ] **Enable auto-merge only after the triage loop is clean:** `gh pr merge <PR-URL> --auto --merge` (NEVER use `--admin` to force the merge)
+- [ ] **Watch for merge** — poll `gh pr view <PR-URL> --json state` (pairing with `gh pr checks --watch`, not fixed sleeps) until `MERGED`; if `CLOSED`, exit and notify the user. If new comments or check failures appear after auto-merge is enabled, re-enter the triage loop. Never wait for a human to report the merge; never force-merge.
 
-After every push, restart at step 1. Never skip the build/test gate before pushing any fix.
+After every push, restart the triage loop. Never skip the build/test gate before pushing any fix.
 
 Ownership metadata:
 
