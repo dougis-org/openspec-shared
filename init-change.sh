@@ -34,7 +34,7 @@ if ! validate_kebab "$CAPABILITY_NAME"; then
 fi
 
 # Resolve repo root as the parent of the directory containing this script.
-# Works correctly whether called directly or through a symlink.
+# Expects to live at <repo>/scripts/init-change.sh (bootstrap copies it there, never symlinks it).
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 

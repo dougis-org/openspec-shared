@@ -11,6 +11,8 @@ artifacts:
     template: proposal.md
     instruction: |
       Document: why needed, problem space, scope (in/out), risks, open questions, non-goals.
+      Include a Capabilities subsection under What Changes: list New Capabilities (durable-behavior kebab-case names, each becomes specs/<capability-path>/spec.md) and Modified Capabilities (exact existing path under openspec/specs/; only if requirement-level behavior changes). Before filling it in, research existing specs: `openspec list --specs`, then `openspec show "<spec-id>" --type spec --json --no-scenarios`, and read relevant specs in full with `openspec show "<spec-id>" --type spec`. Reuse an existing capability path instead of inventing a near-duplicate.
+      Every change must declare at least one capability or set `skip_specs: true` in the change's `.openspec.yaml` (pure refactor, tooling, docs with no behavior change); `openspec validate` rejects a zero-delta change otherwise. Mark breaking changes with **BREAKING**.
       Add change-control note: if scope changes, artifacts must be updated before implementing.
       Assign any ticket used for this proposal or exploration to the current user.
     requires: []
@@ -34,6 +36,11 @@ artifacts:
       Document capabilities affected. Express acceptance criteria as behavior scenarios (Given/When/Then).
       Include ADDED, MODIFIED, REMOVED sections. Include non-functional criteria if affected.
       Ensure explicit traceability from requirements to scenarios.
+      Create one specs/<capability-path>/spec.md per capability in the proposal; write them one at a time and skip files that already exist.
+      Format: `### Requirement: <name>` with SHALL/MUST wording and `#### Scenario: <name>` (exactly four hashtags; fewer fails silently). Every requirement needs at least one scenario. Keep each requirement description to 500 characters or fewer (`openspec validate --strict` fails otherwise); put examples and edge cases in scenarios.
+      Delta operations: ADDED, MODIFIED (copy the ENTIRE existing requirement block from openspec/specs/<capability-path>/spec.md and edit it; headers must match), REMOVED (requires **Reason** and **Migration**), RENAMED (FROM:/TO:).
+      New capabilities start with a `## Purpose` section (50+ characters). Do not add Purpose to a delta for an existing capability; edit the main spec directly to change it.
+      Run `openspec validate <change-name> --strict` before finishing.
     requires:
       - proposal
       - design
@@ -49,7 +56,9 @@ artifacts:
       Require the `openspec-review-code` sub-agent to be run before every commit, and require the primary agent to automatically address all findings from the sub-agent before committing.
       In Preflight: verify `pr-review-toolkit:review-pr` is available; halt and prompt the user to install it if not found.
       In Execution: as the first step (before implementation begins), if the change is issue-driven, run `gh issue edit #N --add-label "in-progress"` and move the GitHub Project item to the "In Progress" status column via runtime-discovered field option IDs (discover via `gh project list --owner <owner> --format json` and `gh project field-list --format json`); warn and skip if project item not found or `gh` token lacks `project` scope.
-      In PR and Merge: when opening the PR, if issue-driven, include `Closes #N` unconditionally in the PR body, run `gh issue edit #N --add-label "in-review" --remove-label "in-progress"`, and move the project item to the "In Review" column. After opening the PR, wait 60 seconds, spawn a sub-agent to run `pr-review-toolkit:review-pr`, address all findings (commit, push, re-run) until zero findings remain, then enable auto-merge via `gh pr merge <PR-URL> --auto --merge`. Do not enable auto-merge before the review gate passes. If findings persist after three or more iterations with no progress, report the stall and wait for human guidance.
+      In PR and Merge: when opening the PR, if issue-driven, include `Closes #N` unconditionally in the PR body, run `gh issue edit #N --add-label "in-review" --remove-label "in-progress"`, and move the project item to the "In Review" column. Do not use fixed sleeps. Immediately after opening the PR, run in parallel: (a) a sub-agent running `pr-review-toolkit:review-pr`, and (b) `gh pr checks <PR-URL> --required --watch --fail-fast` (event-driven; returns on first failure or when all required checks finish). Each iteration, triage ALL signals together — failing required checks (`gh pr checks <PR-URL> --required --json name,bucket,link`; failure logs via `gh run view <run-id> --log-failed`), unresolved review threads (GraphQL `reviewThreads` with `isResolved`/`isOutdated`; `gh pr view` has no `reviewThreads` field), and review-pr findings — fix them in one commit, run local validation, push once, reply to and resolve each addressed thread immediately, then re-watch checks. Enable auto-merge via `gh pr merge <PR-URL> --auto --merge` only after review-pr reports zero findings and no thread is unresolved. Do not enable it earlier. Limit: at most two fix iterations. If the third review (review-pr, required checks, or review threads) still raises issues, stop, escalate to the user with the remaining items listed, and wait for guidance. Poll `gh pr view --json state` between iterations until MERGED or CLOSED.
+      Each task must state how to verify completion (test, command, or observable result) in the checkbox line, and each task group lands its own tests and docs rather than deferring them to a final group. Tracked tasks must be checkboxes (`- [ ]`); a line without a checkbox is not tracked by apply.
+      Archive and post-merge bullets that cannot complete before archive may be kept as plain bullets in a trailing `## Workflow follow-up` section.
       All paths must be relative to project root.
     requires:
       - specs
@@ -67,3 +76,8 @@ artifacts:
 apply:
   requires: [tasks, tests]
   tracks: tasks.md
+  instruction: |
+    Read context files (proposal, design, specs, tasks, tests), work through pending tasks in order, and mark each complete (`- [x]`) as you go.
+    Follow strict TDD. Run the pre-commit code review before every commit.
+    After the PR is open, drive it to merge autonomously using the event-driven loop in tasks.md; never poll with fixed sleeps.
+    Pause if you hit blockers or need clarification.

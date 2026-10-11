@@ -6,7 +6,19 @@ compatibility: Requires openspec CLI.
 metadata:
   author: openspec
   version: "1.0"
-  generatedBy: "1.3.1"
+  generatedBy: "1.2.0"
+---
+
+## Starting Point
+
+If no prompt or context was provided, use the **AskUserQuestion tool** before doing anything else:
+
+> What would you like to explore? You can paste a GitHub issue URL or number, or just describe the problem or idea you want to think through.
+
+If the user provides a GitHub issue reference (URL, `#N`, `N`, or `OWNER/REPO#N`), first assign it to the current user with `gh issue assign <ref> --me`. Then fetch the issue with `gh issue view <ref> --json title,body,comments` and use the title, body, and any comments as the starting context for exploration. Normalize a leading `#N` to `N`, pass full URLs through as-is, and preserve `OWNER/REPO#N` unchanged. Summarize what the issue is asking, then open the conversation from there.
+
+If the user provides a description, use it directly as the starting point.
+
 ---
 
 Enter explore mode. Think deeply. Visualize freely. Follow the conversation wherever it goes.
@@ -56,10 +68,10 @@ Depending on what the user brings, you might:
 │     Use ASCII diagrams liberally        │
 ├─────────────────────────────────────────┤
 │                                         │
-│      ┌────────┐         ┌────────┐      │
-│      │ State  │────────▶│ State  │      │
-│      │   A    │         │   B    │      │
-│      └────────┘         └────────┘      │
+│   ┌────────┐         ┌────────┐        │
+│   │ State  │────────▶│ State  │        │
+│   │   A    │         │   B    │        │
+│   └────────┘         └────────┘        │
 │                                         │
 │   System diagrams, state machines,      │
 │   data flows, architecture sketches,    │
@@ -114,14 +126,14 @@ If the user mentions a change or you detect one is relevant:
 
 3. **Offer to capture when decisions are made**
 
-    | Insight Type               | Where to Capture               |
-    |----------------------------|--------------------------------|
-    | New requirement discovered | `specs/<capability>/spec.md` |
-    | Requirement changed        | `specs/<capability>/spec.md` |
-    | Design decision made       | `design.md`                  |
-    | Scope changed              | `proposal.md`                |
-    | New work identified        | `tasks.md`                   |
-    | Assumption invalidated     | Relevant artifact              |
+   | Insight Type | Where to Capture |
+   |--------------|------------------|
+   | New requirement discovered | `specs/<capability>/spec.md` |
+   | Requirement changed | `specs/<capability>/spec.md` |
+   | Design decision made | `design.md` |
+   | Scope changed | `proposal.md` |
+   | New work identified | `tasks.md` |
+   | Assumption invalidated | Relevant artifact |
 
    Example offers:
    - "That's a design decision. Capture it in design.md?"
@@ -227,7 +239,7 @@ User: A CLI tool that tracks local dev environments
 You: That changes everything.
 
      ┌─────────────────────────────────────────────────┐
-     │          CLI TOOL DATA STORAGE                  │
+     │         CLI TOOL DATA STORAGE                  │
      └─────────────────────────────────────────────────┘
 
      Key constraints:
@@ -283,6 +295,7 @@ But this summary is optional. Sometimes the thinking IS the value.
 - **Don't rush** - Discovery is thinking time, not task time
 - **Don't force structure** - Let patterns emerge naturally
 - **Don't auto-capture** - Offer to save insights, don't just do it
+- **If you create a new change's artifacts** - follow the same dedicated-worktree convention as the propose skill (`.worktrees/<name>`, branch pushed immediately) rather than writing into the primary checkout
 - **Do visualize** - A good diagram is worth many paragraphs
 - **Do explore the codebase** - Ground discussions in reality
 - **Do question assumptions** - Including the user's and your own
