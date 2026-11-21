@@ -15,16 +15,22 @@ Review code changes prior to committing to ensure high quality, avoid unnecessar
 
 ## Input
 
-No input is required. The skill will automatically inspect the repository's current changes.
+Optional: `last-reviewed-sha`, the HEAD at the previous review of this branch. Without it, review the whole branch.
 
 ## Steps
 
 1. **Review Changes**
-   Run the following commands to see all changes introduced by the feature branch:
+   First review (no SHA):
    ```bash
    git diff <default-branch>...HEAD
    git diff HEAD
    ```
+   Later reviews (SHA given): review only what changed since then.
+   ```bash
+   git diff <last-reviewed-sha>..HEAD
+   git diff HEAD
+   ```
+   Read surrounding code only as needed to judge a finding.
 
 2. **Analyze for Issues**
    Review the diff with the following goals. **Only report issues you are confident about**:

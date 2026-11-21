@@ -17,6 +17,7 @@ This skill creates:
 
 - `proposal.md` for what and why
 - `design.md` for how
+- `specs/**/*.md` for behavior scenarios
 - `tasks.md` for implementation steps
 - `tests.md` for test cases
 
@@ -55,9 +56,6 @@ The user's request may include:
    Treat the user's request as the basis for the change. If they already provided a kebab-case change name, use it directly. Otherwise, derive a concise kebab-case change name from their description (for example, `add-user-auth`).
 
    Use the user's description as the basis for the change description. Do not ask a clarifying question unless the request is still ambiguous or missing key details needed to understand the change.
-   **If the input is clear but not a GitHub issue reference:**
-
-   Treat the user's request as the basis for the change. If they already provided a kebab-case change name, use it directly. Otherwise, derive a concise kebab-case change name from their description (for example, `add-user-auth`). Use the user's description as the change description. Do not ask a clarifying question unless the request is still ambiguous or missing key details needed to understand the change.
 
    **If no clear input is provided:**
 
@@ -151,9 +149,7 @@ The user's request may include:
 
    Continue until all entries in `applyRequires` are complete. This includes the `tests` artifact.
 
-   When creating `tasks.md`, include the required pre-PR self-review step from `skills/openspec-apply-change/SKILL.md` as a checklist item before any commit or push steps.
-
-   When creating `tasks.md` and `tests.md`, require a BDD/TDD workflow: define the desired behavior in tests first, then implement against the failing tests. Make that sequence explicit in the task list so implementation cannot begin before the test step is complete.
+   When creating `tasks.md` and `tests.md`, follow the schema instruction and rules (test-first BDD/TDD, pre-commit review, CI-equivalent validation as part of done). Reference the apply skill for process; do not restate it.
 
    After creating each artifact:
 

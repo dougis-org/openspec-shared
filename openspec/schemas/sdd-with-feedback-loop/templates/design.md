@@ -20,36 +20,9 @@
 
 - Chosen:
 - Alternatives considered:
-- Rationale:
-- Trade-offs:
-
-### Decision 2: <title>
-
-- Chosen:
-- Alternatives considered:
-- Rationale:
-- Trade-offs:
-
-## Proposal to Design Mapping
-
-- Proposal element: <from proposal>
-  - Design decision: <decision reference>
-  - Validation approach: <test/verification>
-
-## Functional Requirements Mapping
-
-- Requirement:
-  - Design element:
-  - Acceptance criteria reference:
-  - Testability notes:
-
-## Non-Functional Requirements Mapping
-
-- Requirement category: performance/security/reliability/operability
-  - Requirement:
-  - Design element:
-  - Acceptance criteria reference:
-  - Testability notes:
+- Rationale / trade-offs:
+- Proposal element addressed:
+- Requirements and testability (functional / non-functional: performance, security, reliability, operability), with spec scenario reference:
 
 ## Risks / Trade-offs
 
@@ -59,14 +32,13 @@
 
 ## Rollback / Mitigation
 
-- Rollback trigger:
-- Rollback steps:
+- Rollback trigger and steps:
 - Data migration considerations:
 - Verification after rollback:
 
 ## Operational Blocking Policy
 
-- If CI checks fail:
+- If CI checks (including quality gates and coverage) fail:
 - If security checks fail:
 - If required reviews are blocked/stale:
 - Escalation path and timeout:

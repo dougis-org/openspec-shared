@@ -50,14 +50,10 @@ artifacts:
     description: Implementation task checklist with Preparation through Post-Merge steps
     template: tasks.md
     instruction: |
-      Create task list with sections: Preparation, Preflight, Execution, Pre-Commit Code Review,
-      Validation, PR and Merge, and Post-Merge. Follow strict BDD/TDD.
-      Include ownership metadata and a blocking resolution flow.
-      Require the `openspec-review-code` sub-agent to be run before every commit, and require the primary agent to automatically address all findings from the sub-agent before committing.
-      In Preflight: verify `pr-review-toolkit:review-pr` is available; halt and prompt the user to install it if not found.
-      In Execution: as the first step (before implementation begins), if the change is issue-driven, run `gh issue edit #N --add-label "in-progress"` and move the GitHub Project item to the "In Progress" status column via runtime-discovered field option IDs (discover via `gh project list --owner <owner> --format json` and `gh project field-list --format json`); warn and skip if project item not found or `gh` token lacks `project` scope.
-      In PR and Merge: when opening the PR, if issue-driven, include `Closes #N` unconditionally in the PR body, run `gh issue edit #N --add-label "in-review" --remove-label "in-progress"`, and move the project item to the "In Review" column. Do not use fixed sleeps. Immediately after opening the PR, run in parallel: (a) a sub-agent running `pr-review-toolkit:review-pr`, and (b) `gh pr checks <PR-URL> --required --watch --fail-fast` (event-driven; returns on first failure or when all required checks finish). Each iteration, triage ALL signals together — failing required checks (`gh pr checks <PR-URL> --required --json name,bucket,link`; failure logs via `gh run view <run-id> --log-failed`), unresolved review threads (GraphQL `reviewThreads` with `isResolved`/`isOutdated`; `gh pr view` has no `reviewThreads` field), and review-pr findings — fix them in one commit, run local validation, push once, reply to and resolve each addressed thread immediately, then re-watch checks. Enable auto-merge via `gh pr merge <PR-URL> --auto --merge` only after review-pr reports zero findings and no thread is unresolved. Do not enable it earlier. Limit: at most two fix iterations. If the third review (review-pr, required checks, or review threads) still raises issues, stop, escalate to the user with the remaining items listed, and wait for guidance. Poll `gh pr view --json state` between iterations until MERGED or CLOSED.
-      Each task must state how to verify completion (test, command, or observable result) in the checkbox line, and each task group lands its own tests and docs rather than deferring them to a final group. Tracked tasks must be checkboxes (`- [ ]`); a line without a checkbox is not tracked by apply.
+      Create the task list from the template (sections: Preparation, Preflight, Execution, Pre-Commit Code Review, Validation, PR and Merge, Post-Merge). Strict BDD/TDD. Include ownership metadata and a blocking resolution flow.
+      Process details (worktree, issue lifecycle, review, PR triage loop, archive) live in the apply and archive skills: reference them, do not restate them. Keep the template's pointers.
+      Validation requires the repo's CI-equivalent checks (tests, build, lint/static analysis, security, coverage) to pass. Apply is complete only when the PR is merged with every required check passing.
+      Each task states how to verify completion in the checkbox line, and each task group lands its own tests and docs rather than deferring them. Tracked tasks must be checkboxes (`- [ ]`); a line without a checkbox is not tracked by apply.
       Archive and post-merge bullets that cannot complete before archive may be kept as plain bullets in a trailing `## Workflow follow-up` section.
       All paths must be relative to project root.
     requires:
@@ -68,8 +64,7 @@ artifacts:
     description: Test cases following a strict TDD workflow
     template: tests.md
     instruction: |
-      Create test cases for all tasks following strict TDD (fail, pass, refactor).
-      Map each case to a task in tasks.md and an acceptance scenario in specs.
+      Create test cases for all tasks (strict TDD). Map each case to a task and a spec scenario.
     requires:
       - tasks
 
@@ -77,7 +72,7 @@ apply:
   requires: [tasks, tests]
   tracks: tasks.md
   instruction: |
-    Read context files (proposal, design, specs, tasks, tests), work through pending tasks in order, and mark each complete (`- [x]`) as you go.
+    Read tasks, tests and specs (proposal and design only when needed), work through pending tasks in order, and mark each complete (`- [x]`) as you go.
     Follow strict TDD. Run the pre-commit code review before every commit.
-    After the PR is open, drive it to merge autonomously using the event-driven loop in tasks.md; never poll with fixed sleeps.
+    After the PR is open, drive it to merge autonomously using the apply skill's event-driven triage loop; never poll with fixed sleeps.
     Pause if you hit blockers or need clarification.

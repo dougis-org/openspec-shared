@@ -100,9 +100,18 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    **Single-commit rule:** After the move, stage both the new archive path and the deletion of the original path together before committing. Use `git add openspec/changes/archive/YYYY-MM-DD-<name>` and `git rm -r openspec/changes/<name>` (or equivalent) so that the copy and the delete land in **one commit**. Never commit the copy first and the delete separately — this leaves the repository in a split state between commits.
 
-7. **Remove the worktree and prune the merged local branch**
+7. **Publish via doc-branch PR** *(never push directly to the default branch)*
 
-   After the PR is merged and the change has been archived, clean up the dedicated worktree and local git state. Do this from the primary checkout, not from inside the worktree being removed.
+   With the archive commit (and synced `openspec/specs/` changes) made:
+
+   - Put it on `doc/archive-YYYY-MM-DD-<name>` and `git push -u origin doc/archive-YYYY-MM-DD-<name>`
+   - Open a PR to the default branch titled `docs: archive <name> (YYYY-MM-DD)`
+   - Run `gh pr merge <DOC-PR-URL> --auto --merge` (never `--admin`)
+   - Monitor it with the apply skill's PR triage loop until merged; the same CI definition of done applies
+
+8. **Remove the worktree and prune the merged local branches**
+
+   After both PRs are merged, clean up the dedicated worktree and local git state. Do this from the primary checkout, not from inside the worktree being removed.
 
    - Remove the change's dedicated worktree:
 
@@ -119,7 +128,7 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - Delete the merged local feature branch with:
 
      ```bash
-     git branch -d <feature-branch>
+     git branch -d <feature-branch> doc/archive-YYYY-MM-DD-<name>
      ```
 
    **Safety rules:**
@@ -128,7 +137,7 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - If the branch is not fully merged, warn the user and leave the worktree and branch in place
    - If the feature branch name cannot be determined reliably, tell the user cleanup is still required and show the commands instead of guessing
 
-8. **Display summary**
+9. **Display summary**
 
    Show archive completion summary including:
 
