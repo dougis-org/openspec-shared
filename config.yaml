@@ -1,48 +1,38 @@
 schema: sdd-with-feedback-loop
 
 context: |
-  Use default OpenSpec sdd-with-feedback-loop flow (proposal -> design -> specs -> tasks -> apply -> archive).
-  Keep artifacts concise and implementation-ready.
-  Preserve default OpenSpec artifact lifecycle and dependency ordering.
-  All file and folder references must be project-root-relative paths (for example, openspec/changes/my-change/proposal.md).
+  Flow: proposal -> design -> specs -> tasks -> tests -> apply -> archive. Keep artifacts concise and implementation-ready.
+  All file/folder references are project-root-relative (e.g. openspec/changes/my-change/proposal.md); never absolute.
+  Rules and context constrain the author; never copy them into artifacts.
+  Process details (branching, PR loop, review, archive) live in skills/openspec-apply-change and skills/openspec-archive-change. Reference them; do not restate them in artifacts.
 
 rules:
   proposal:
-    - "Iterate on proposal quality before finalizing; explicitly call out gaps, assumptions, constraints, and edge cases."
-    - 'Include an "Open Questions" section with concrete questions for the requester. If no unresolved ambiguity exists, include a statement confirming this.'
-    - "Fully define problem space boundaries: in-scope, out-of-scope, impacted capabilities, and risks."
-    - 'Required sections: "GitHub Issues", "Why", "Problem Space", "Scope", "What Changes", "Risks", "Open Questions", "Non-Goals".'
-    - "Include explicit change-control note: if scope changes after approval, proposal/design/specs/tasks must be updated before apply."
-    - "Proposal must be reviewed and explicitly approved by a human before design, specs, tasks, or apply proceed."
+    - 'Required sections: "GitHub Issues", "Why", "Problem Space", "Scope", "What Changes", "Risks", "Open Questions", "Non-Goals". Call out gaps, assumptions, constraints, edge cases.'
+    - 'Open Questions must be concrete; if none, state that no unresolved ambiguity exists.'
+    - "Include change-control note: if scope changes after approval, proposal/design/specs/tasks must be updated before apply."
+    - "A human must explicitly approve the proposal before design, specs, tasks, or apply proceed."
 
   design:
-    - "Every major proposal element must map to a corresponding design decision."
-    - "Document functional and non-functional requirements and ensure they map to acceptance criteria in specs."
-    - "For each requirement, include testability notes and expected validation approach."
-    - 'Required sections: "Context", "Goals / Non-Goals", "Decisions", "Risks / Trade-offs", "Rollback / Mitigation", "Open Questions".'
-    - "Include explicit mapping table or bullet mapping from proposal elements to design decisions."
-    - "Include operational blocking policy: what to do if CI/review/security checks remain blocked."
+    - 'Required sections: "Context", "Goals / Non-Goals", "Decisions", "Risks / Trade-offs", "Rollback / Mitigation", "Operational Blocking Policy", "Open Questions".'
+    - "Each decision names the proposal element it addresses, its functional/non-functional requirements, and testability notes. Every major proposal element must map to a decision."
+    - "Blocking policy covers CI (including quality gates and coverage), review, and security failures."
 
   specs:
-    - "Acceptance criteria must be expressed as behavior scenarios (Given/When/Then or equivalent WHEN/THEN format)."
-    - "Ensure each scenario is measurable and unambiguous."
-    - "Include non-functional acceptance criteria when performance, security, reliability, or operability are affected."
-    - 'Required sections per capability: "ADDED/MODIFIED/REMOVED Requirements" with at least one scenario each.'
-    - "Include explicit traceability from requirements to acceptance scenarios."
+    - "Acceptance criteria are measurable Given/When/Then (or WHEN/THEN) scenarios; include non-functional criteria when performance, security, reliability, or operability are affected."
+    - 'Per capability: ADDED/MODIFIED/REMOVED requirements, each with at least one scenario.'
+    - "The Traceability block is the single home for requirement -> scenario -> task traceability."
 
   tasks:
-    - "When initializing a change manually (without the openspec-propose skill), run npm run opsx:init-change -- <change-name> [capability-name] from project root. When using the propose skill, initialization is handled automatically."
-    - "Keep default implementation ordering from schema dependencies; do not reorder artifacts outside default flow."
-    - "Step 1 of Execution must always be: checkout the default branch (main or master) and pull with fast-forward only."
-    - "Step 2 of Execution must always be: create the working branch from the default branch, then immediately push it to remote with `git push -u origin <feature-branch-name>` — the branch must exist on remote before any implementation work begins."
-    - "Before the initial commit/push that opens the PR, the agent must run the pre-PR self-review sub-agent step defined in `skills/openspec-apply-change/SKILL.md`, and the primary agent must automatically address all findings from the sub-agent. This step is mandatory and must never be skipped."
-    - "After all local validation passes and all tasks are marked complete, the agent must commit all changes to the working branch, push to remote, and open a PR from the working branch to the default branch."
-    - "After opening a PR, wait 180 seconds, then immediately enable auto-merge (`gh pr merge --auto --merge`). The agent must then actively monitor for review comments and CI check results autonomously — never wait for a human to report new comments or that the PR has merged. For comments: address each one, commit fixes, push, wait 180 seconds, and repeat. For CI failures: diagnose, fix, commit, push, wait 180 seconds, and repeat. After each iteration, poll `gh pr view --json state`; when state is MERGED proceed to post-merge steps, or if CLOSED exit and notify the user."
-    - "Never force-merge; enable auto-merge immediately after the initial wait and let GitHub merge when all conditions are met."
-    - "Post-merge steps must be performed in order: (1) checkout the default branch and pull, (2) verify merged changes appear on the default branch, (3) mark all tasks complete, (4) sync approved spec deltas to openspec/specs/, (5) archive the change directory as a single atomic commit that includes both the copy to archive/ and the deletion of the original location — never split this into two commits, (6) push the archive commit to the default branch."
-    - "Include completion checklist items for: docs updates, archive step, syncing approved spec deltas back to openspec/specs before or during archive workflow, and pruning merged local branches after archive."
-    - "Prefer small, testable tasks with explicit verification commands."
-    - 'Required sections: "Preparation", "Execution", "Validation", "PR and Merge", "Post-Merge".'
-    - "Include ownership metadata where available: implementer, reviewer, and approval expectation."
-    - "Define blocking criteria and resolution flow for CI failures, unresolved review comments, and security findings."
-    - "All file/folder references in tasks content must be relative to project root; never use absolute paths."
+    - "When initializing manually (without the propose skill), run npm run opsx:init-change -- <change-name> [capability-name] from project root."
+    - "Sections: Preparation, Execution, Pre-Commit Code Review, Validation, PR and Merge, Post-Merge. Keep artifact order as defined by the schema."
+    - "Preparation: checkout default branch, pull --ff-only, create the working branch and push it to remote before any implementation."
+    - "Tasks are small and testable, each naming its tests.md cases and a verification command. Strict BDD/TDD: failing test first."
+    - "Run the openspec-review-code sub-agent before every commit and fix all findings."
+    - "Definition of done for apply: the PR is merged with every required CI check passing, including whatever quality gates the repo defines (tests, build, lint/static analysis, security scans, coverage). Use the repo's own docs and CI config for commands and thresholds; never name tools or numbers here. Never waive, lower, skip, or disable a check to get green; if a gate looks wrong, pause and ask the user."
+    - "PR and Merge: open PR with `Closes #N` for each proposal issue, enable auto-merge immediately (never --admin), then follow the apply skill's PR loop until merged."
+    - "Post-Merge: run /opsx:archive. The change is fully done only after archive and local cleanup finish."
+    - "Include ownership metadata (implementer, reviewer, approvals) and blocking flow for CI failures, review comments, and security findings."
+
+  tests:
+    - "Each case maps to a task in tasks.md and a scenario in the specs."

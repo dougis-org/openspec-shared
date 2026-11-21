@@ -106,9 +106,18 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
 
    **Single-commit rule:** After the move, stage both the new archive path and the deletion of the original path together before committing. Use `git add openspec/changes/archive/YYYY-MM-DD-<name>` and `git rm -r openspec/changes/<name>` (or equivalent) so that the copy and the delete land in **one commit**. Never commit the copy first and the delete separately — this leaves the repository in a split state between commits.
 
-6. **Prune merged local branches**
+7. **Publish via doc-branch PR** *(never push directly to the default branch)*
 
-   After the PR is merged and the change has been archived, clean up local git state.
+   From the default branch with the archive commit (and any synced `openspec/specs/` changes) made:
+
+   - `git checkout -b doc/archive-YYYY-MM-DD-<name>` (moving the commit onto it), then `git push -u origin doc/archive-YYYY-MM-DD-<name>`
+   - Open a PR to the default branch titled `docs: archive <name> (YYYY-MM-DD)`
+   - Immediately run `gh pr merge <DOC-PR-URL> --auto --merge` (never `--admin`)
+   - Monitor it with the same PR loop as the apply skill (step 8) until merged; fix failing required checks and address comments
+
+8. **Prune merged local branches**
+
+   After both PRs are merged, clean up local git state.
 
    - Ensure you are on the default branch, or another safe branch, not the feature branch being deleted
    - Refresh remote-tracking refs:
@@ -117,10 +126,10 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
      git fetch --prune
      ```
 
-   - Delete the merged local feature branch with:
+   - Delete the merged local feature and doc branches with:
 
      ```bash
-     git branch -d <feature-branch>
+     git branch -d <feature-branch> doc/archive-YYYY-MM-DD-<name>
      ```
 
    **Safety rules:**
@@ -129,7 +138,7 @@ Optionally specify a change name. If omitted, check if it can be inferred from c
    - If the branch is not fully merged, warn the user and leave it in place
    - If the feature branch name cannot be determined reliably, tell the user branch pruning is still required and show the cleanup commands instead of guessing
 
-8. **Display summary**
+9. **Display summary**
 
    Show archive completion summary including:
 

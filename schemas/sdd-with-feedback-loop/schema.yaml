@@ -46,8 +46,11 @@ artifacts:
       Create task list with sections: Preparation, Execution, Pre-Commit Code Review,
       Validation, PR and Merge, and Post-Merge. Follow strict BDD/TDD.
       Include ownership metadata and a blocking resolution flow.
-      Require the `openspec-review-code` sub-agent to be run before every commit, and require the primary agent to automatically address all findings from the sub-agent before committing.
-      Ensure PRs are set to auto-merge when created. All paths must be relative to project root.
+      Require the `openspec-review-code` sub-agent before every commit with all findings fixed.
+      Validation must require the repo's CI-equivalent checks (tests, build, lint/static analysis,
+      security, coverage) to pass; apply is complete only when the PR is merged with all required checks green.
+      PRs auto-merge on creation. Reference the apply/archive skills for process; do not restate them.
+      All paths relative to project root.
     requires:
       - specs
 
@@ -56,8 +59,7 @@ artifacts:
     description: Test cases following a strict TDD workflow
     template: tests.md
     instruction: |
-      Create test cases for all tasks following strict TDD (fail, pass, refactor).
-      Map each case to a task in tasks.md and an acceptance scenario in specs.
+      Create test cases for all tasks (strict TDD). Map each case to a task and a spec scenario.
     requires:
       - tasks
 

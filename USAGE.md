@@ -8,7 +8,7 @@ This workflow provides a strict, feedback-driven pipeline designed to establish 
 
 ## High-Level Workflow Overview
 
-The lifecycle of a code change progresses through six distinct phases. The flow is iterative: feedback from local pre-commit reviews, validation failures, or PR reviews will loop execution back to earlier phases as needed to maintain high quality.
+The lifecycle of a code change progresses through four phases. The flow is iterative: feedback from local pre-commit reviews, validation failures, or PR reviews will loop execution back to earlier phases as needed to maintain high quality.
 
 ```mermaid
 flowchart TD
@@ -35,10 +35,10 @@ flowchart TD
     N --> K
     M -->|No| O[Commit & Validate Locally]
     
-    O --> P[Phase 4: Remote Push Validation]
-    P -->|Unit, Integration, E2E, Build| Q{All pass?}
+    O --> P[Local CI-equivalent validation]
+    P -->|Tests, Build, Lint, Security, Coverage| Q{All pass?}
     Q -->|No| K
-    Q -->|Yes| R[Phase 5: PR & Autonomous Quality Gates]
+    Q -->|Yes| R[PR & Autonomous Loop]
     
     R --> S[Push & Open PR]
     S --> T[Enable Auto-Merge immediately]
@@ -46,7 +46,7 @@ flowchart TD
     U --> V{CI/Comments Blocked?}
     V -->|Yes| W[Address ➔ Validate Locally ➔ Push ➔ Re-poll]
     W --> U
-    V -->|No / Merged| X[Phase 6: Post-Merge & Archive]
+    V -->|No / Merged| X[Phase 4: Post-Merge & Archive]
     
     X -->|/opsx-archive| Y[Sync Spec Deltas ➔ Archive Directory]
     Y --> Z[Doc Branch & Doc PR with Auto-Merge]
@@ -124,206 +124,37 @@ flowchart LR
 
 ---
 
-### Phase 3: Apply / Implementation (`/opsx-apply`)
+### Phase 3: Apply (`/opsx-apply`)
 
-**Objective**: Execute the checklist in `tasks.md` sequentially, applying BDD/TDD practices and enforcing code quality via an autonomous pre-commit review.
+**Objective**: Implement `tasks.md` with BDD/TDD, then drive the PR to merge. The process is defined once, in `skills/openspec-apply-change/SKILL.md`; this guide summarizes it.
 
-#### 1. Preparation
-Before making code changes, synchronize with the remote defaults:
-```bash
-git checkout <default-branch>
-git pull --ff-only
-git checkout -b <feature-branch-name>
-git push -u origin <feature-branch-name>
-```
-
-#### 2. Execution (BDD/TDD Loop)
-For each task:
-1.  **Red**: Write a failing test in the test suite that captures the behavior.
-2.  **Green**: Write the minimal code necessary to make the test pass.
-3.  **Refactor**: Clean up implementation, reuse existing helpers/modules, and eliminate redundancy.
-4.  **Mark**: Check off the task in `tasks.md` (`- [ ]` ➔ `- [x]`).
-
-#### 3. The Pre-Commit Quality Gate
-Before creating **every commit**, a dedicated quality review must run to keep the code clean and prevent technical debt:
-
-```mermaid
-flowchart LR
-    A[Code Changes Made] --> B[Run Pre-commit Review]
-    B -->|Spawn sub-agent with openspec-review-code| C[Analyze staged/unstaged changes]
-    C --> D{Review Report Findings}
-    D -->|None| E[git commit]
-    D -->|Complexity, Duplication, Quality Issues| F[Primary Agent addresses findings]
-    F --> A
-
-    style B fill:#e0f2fe,stroke:#0284c7
-    style C fill:#e0f2fe,stroke:#0284c7
-    style E fill:#dcfce7,stroke:#16a34a
-    style F fill:#fee2e2,stroke:#dc2626
-```
-
-1.  **Spawn Sub-Agent**: Run the `openspec-review-code` skill. This automatically compares changes against the default branch:
-    ```bash
-    git diff <default-branch>...HEAD
-    git diff HEAD
-    ```
-2.  **Analyze Report**: The sub-agent outputs a structured report detailing:
-    *   *Complexity Issues*: Overly complex logic with suggested simpler structures.
-    *   *Duplication Issues*: Spotting repeated code or missing opportunities to reuse existing functions.
-    *   *Quality Issues*: Bad naming, unclear control flow, or potential bugs.
-3.  **Automatic Resolution**: The primary agent **must address all findings** in the report, adjusting the codebase locally before committing.
-
----
-
-### Phase 4: Local Validation
-
-Prior to pushing any commits to the remote branch or staging them for a Pull Request, you must execute the project's local validation suites. 
-
-> [!CAUTION]
-> If **ANY** of the following validation steps fail, you **MUST NOT** push. You must iterate locally to resolve the failures:
-> - **Unit Tests**: Project test suite must pass with 100% success.
-> - **Integration / E2E Tests**: Integration and regression tests must pass.
-> - **Build**: Production and development build scripts must succeed with zero errors/warnings.
-
----
-
-### Phase 5: PR, Merge & Autonomous Quality Gates
-
-Once local validation is green, push the changes and open the Pull Request. The agent will then transition into an autonomous monitoring and resolution loop until the PR successfully merges.
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Developer/Agent
-    participant Git as Git Repo
-    participant GH as GitHub API / CLI
-    participant CI as CI Runner
-    
-    Developer/Agent->>Git: Push feature branch
-    Developer/Agent->>GH: Open PR & immediately enable auto-merge
-    Note over Developer/Agent,GH: gh pr merge <URL> --auto --merge
-    
-    loop Autonomous PR Polling Loop
-        Developer/Agent->>GH: Check for comments / reviews (every 180s)
-        alt Comments exist
-            Developer/Agent->>Developer/Agent: Address comments locally
-            Developer/Agent->>Developer/Agent: Run local validation (tests & build)
-            Developer/Agent->>Git: Push updates
-        end
-        
-        Developer/Agent->>GH: Check CI check states (gh pr checks)
-        alt Required check failed
-            Developer/Agent->>Developer/Agent: Diagnose and fix locally
-            Developer/Agent->>Developer/Agent: Run local validation (tests & build)
-            Developer/Agent->>Git: Push updates
-        end
-        
-        Developer/Agent->>GH: Check PR state (gh pr view --json state)
-        alt state == MERGED
-            Note over Developer/Agent: Exit loop ➔ Move to Archive Phase
-        else state == CLOSED
-            Note over Developer/Agent: Exit loop ➔ Notify User of failure
-        end
-    end
-```
-
-#### PR Life Cycle Rules
-
-1.  **Open PR**: Open a PR from the working branch to `<default-branch>`. If the proposal was issue-driven, write `Closes #N` explicitly in the PR body.
-2.  **Enable Auto-Merge**: **Immediately** run:
-    ```bash
-    gh pr merge <PR-URL> --auto --merge
-    ```
-    *Never* use `--admin` or force-merge. Allow quality gates to pass naturally.
-3.  **Comment Resolution Loop**:
-    *   Poll for new PR comments every 180 seconds.
-    *   When feedback is left, address it immediately in the code, run local validation, commit, and push.
-    *   Ensure all comment threads are marked resolved to unblock the merge.
-4.  **CI Check Resolution Loop**:
-    *   Poll for CI check statuses using:
-        ```bash
-        gh pr checks <PR-URL> --json isRequired,state
-        ```
-    *   If a required check fails, diagnose the problem, write a local fix, run local validation, and push.
-5.  **Merge Polling**:
-    *   Check the state of the PR:
-        ```bash
-        gh pr view <PR-URL> --json state
-        ```
-    *   Once `state` becomes `MERGED`, break the loop and proceed to archiving. If it becomes `CLOSED` without a merge, halt and request human assistance.
-
----
-
-### Phase 6: Post-Merge & Archive (`/opsx-archive`)
-
-Once your feature PR is merged, the change must be synchronized, spec changes made global, local workspaces cleaned, and the change directory archived.
-
-#### 1. Sync & Pull
-Switch to the default branch and pull down the merged commit:
-```bash
-git checkout <default-branch>
-git pull --ff-only
-```
-
-#### 2. Spec Delta Synchronization
-Sync any approved delta specifications from `openspec/changes/<change-name>/specs/` into the global, single-source-of-truth spec directory: `openspec/specs/<capability>/spec.md`.
-
-#### 3. Archive in a Single Commit
-Move the change directory into the archives.
-```bash
-mkdir -p openspec/changes/archive
-mv openspec/changes/<change-name> openspec/changes/archive/YYYY-MM-DD-<change-name>
-```
+1.  **Preparation**: checkout the default branch, `git pull --ff-only`, create the feature branch, push it to remote.
+2.  **Execution (per task)**: write a failing test (add the case to `tests.md`) → minimal code to pass → refactor → check off the task.
+3.  **Local validation**: run the repo's CI-equivalent checks (tests, build, lint/static analysis, security checks, coverage). Commands and thresholds come from the repo's README / CLAUDE.md / AGENTS.md and CI config; this workflow names no tools. All must pass before any push.
+4.  **Pre-commit review**: before every commit, a sub-agent runs `openspec-review-code` and the primary agent fixes all findings. The first review covers the whole branch; later ones cover only changes since the last reviewed commit.
+5.  **PR**: push, open the PR (`Closes #N` for issues in `proposal.md`), enable auto-merge immediately (`gh pr merge <URL> --auto --merge`, never `--admin`).
+6.  **PR loop**: the agent polls autonomously. A cheap state check first; one GraphQL query for unresolved threads and required-check status; fix every failing required check and open thread in one pass, validate locally, review, push once, wait 3 minutes, repeat until `MERGED` (or notify the user on `CLOSED`).
 
 > [!IMPORTANT]
-> **Stage the move together.** You must add the archived directory and stage the deletion of the active changes directory *in a single commit* to keep Git history clean.
-> ```bash
-> git add openspec/changes/archive/YYYY-MM-DD-<change-name>/ openspec/specs/
-> git rm -r openspec/changes/<change-name>/
-> git commit -m "docs: archive <change-name> (YYYY-MM-DD)"
-> ```
-
-#### 4. Open a Doc PR (Never Push Directly to Default Branch)
-To keep branching strict, push these archival and spec-sync changes through a dedicated documentation branch and PR:
-```bash
-git checkout -b doc/archive-YYYY-MM-DD-<change-name>
-git push -u origin doc/archive-YYYY-MM-DD-<change-name>
-
-gh pr create \
-  --base <default-branch> \
-  --head doc/archive-YYYY-MM-DD-<change-name> \
-  --title "docs: archive <change-name> (YYYY-MM-DD)" \
-  --body "Archives completed change **<change-name>** and syncs delta specs to main specs."
-```
-*Immediately enable auto-merge* on this doc PR (`gh pr merge <DOC-PR-URL> --auto --merge`) and monitor it until it is merged.
-
-#### 5. Local Branch Cleanup
-Once both the implementation PR and the doc PR are merged, prune all local branches to keep the workspace clean:
-```bash
-git fetch --prune
-git branch -d <feature-branch-name> doc/archive-YYYY-MM-DD-<change-name>
-```
+> **Apply is complete only when the PR is merged with every required CI check passing**, including the repo's quality gates and coverage requirements. Fix failures in code. Never waive, lower, skip, or disable a check; if a gate looks wrong, ask the user. The change as a whole is done only after the archive stage.
 
 ---
 
-## Agent Instructions & Reference
+### Phase 4: Post-Merge & Archive (`/opsx-archive`)
 
-When acting as an AI coding agent, treat the following rules as high-priority instructions:
+Defined in `skills/openspec-archive-change/SKILL.md`:
 
-### 1. General Principles
-*   **Phase Discipline**: Never write application code during the **Explore** phase. Never write code during the **Propose** phase. Implement *only* during **Apply**.
-*   **No Placeholders**: When scaffolding templates or writing code, never write comments like `// TODO: implement` or placeholder texts. Every artifact must contain fully fleshed-out details.
-*   **Traceability**: Every acceptance criteria scenario in `spec.md` must link back to requirements in `design.md`, and must map to a specific checkbox task in `tasks.md`.
+1.  Verify the PR is merged, CI passed, and comments are resolved.
+2.  Sync approved delta specs into `openspec/specs/`.
+3.  Move the change to `openspec/changes/archive/YYYY-MM-DD-<name>/` in a **single commit** (stage the new path and the deletion together).
+4.  Publish through a `doc/archive-YYYY-MM-DD-<name>` branch and PR with auto-merge; never push directly to the default branch. Monitor it like the implementation PR.
+5.  `git fetch --prune` and `git branch -d <feature-branch> doc/archive-YYYY-MM-DD-<name>`.
 
-### 2. Pre-Commit Review Execution
-Before executing `git commit` on the implementation branch, you **MUST**:
-1. Spawn the `openspec-review-code` sub-agent.
-2. Read the review report findings.
-3. Automatically apply code edits to resolve any identified complexity, duplication, or quality issues.
-4. Only commit once the pre-commit review report has zero new findings (or you've resolved all actionable ones).
+---
 
-### 3. PR Auto-Merge and Polling Loop
-When opening any PR:
-1. Run `gh pr merge <PR-URL> --auto --merge` immediately.
-2. Schedule a cron or timer (e.g. `DurationSeconds=180` or recurring schedule) to poll for comments and CI status. Do not run blocking infinite terminal loops; yield control back, and let the system wake you up when notifications arrive or intervals trigger.
-3. Actively fix failed required CI checks and reply to PR reviews on the branch, following local validation rules before each push.
+## Agent Instructions
+
+*   **Phase discipline**: no application code during Explore or Propose.
+*   **No placeholders**: artifacts are fully fleshed out, never `TODO` text.
+*   **Traceability**: the spec's Traceability block links requirements to scenarios and tasks; `tests.md` cases map to tasks and scenarios.
+*   **Process lives in the skills**: do not restate it in artifacts; reference it.
