@@ -1,35 +1,24 @@
 schema: sdd-with-feedback-loop
 
 context: |
-  Use default OpenSpec sdd-with-feedback-loop flow (proposal -> design -> specs -> tasks -> apply -> archive).
-  Keep artifacts concise and implementation-ready.
-  Preserve default OpenSpec artifact lifecycle and dependency ordering.
-  All file and folder references must be project-root-relative paths (for example, openspec/changes/my-change/proposal.md).
-  All work on a change — from the first proposal artifact through apply and archive — happens inside a dedicated git worktree at `.worktrees/<change-name>`, never in the primary checkout. This lets multiple agents work on different changes from the same repo clone in parallel without one agent's branch checkout disrupting another's in-progress files.
+  Flow: proposal -> design -> specs -> tasks -> tests -> apply -> archive. Keep artifacts concise and implementation-ready.
+  All file/folder references are project-root-relative (e.g. openspec/changes/my-change/proposal.md).
+  All work on a change (proposal through apply and archive) happens in its dedicated git worktree `.worktrees/<change-name>`, never the primary checkout; the propose skill (step 3) creates it and pushes the branch, and `.worktrees/` must be ignored (via `.gitignore`, or `.git/info/exclude` until the change's PR adds it).
 
 rules:
   proposal:
-    - "Before creating the change directory, ensure a dedicated git worktree exists for this change: from the primary checkout, fetch the default branch and run `git worktree add .worktrees/<name> -b <name> origin/<default-branch>` (reuse the existing worktree instead of creating a new one if one already exists for `<name>`, e.g. because explore mode started it). Immediately publish the branch with `git push -u origin <name>`. Every file this change touches — the change directory itself, every artifact, and all later apply/implementation work — must be created and edited inside `.worktrees/<name>`, never in the primary checkout. Ensure `.worktrees/` is listed in `.gitignore`."
-    - "Iterate on proposal quality before finalizing; explicitly call out gaps, assumptions, constraints, and edge cases."
-    - 'Include an "Open Questions" section with concrete questions for the requester. If no unresolved ambiguity exists, include a statement confirming this.'
-    - "Fully define problem space boundaries: in-scope, out-of-scope, impacted capabilities, and risks."
-    - 'Required sections: "GitHub Issues", "Why", "Problem Space", "Scope", "What Changes", "Risks", "Open Questions", "Non-Goals".'
-    - "Include explicit change-control note: if scope changes after approval, proposal/design/specs/tasks must be updated before apply."
-    - "Proposal must be reviewed and explicitly approved by a human before design, specs, tasks, or apply proceed — UNLESS the change was started with the explore workflow, every open question raised during that session was resolved, and the user then explicitly instructs the agent to proceed with the proposal artifact. In that case the instruction to proceed counts as approval: continue directly through design, specs, and tasks without an additional approval pause. This exception does not apply to apply — implementation still waits for the tasks artifact to exist and be ready, per the normal artifact dependency graph."
+    - 'Required sections: "GitHub Issues", "Why", "Scope", "What Changes", "Risks", "Open Questions". "Out of Scope" is the non-goals list; "Why" carries current vs desired behavior, constraints, assumptions and edge cases. Call out gaps and assumptions.'
+    - 'Open Questions must be concrete; if none, state that no unresolved ambiguity exists.'
+    - "Include the change-control note: if scope changes after approval, proposal/design/specs/tasks must be updated before apply."
+    - "Proposal must be reviewed and explicitly approved by a human before design, specs, tasks, or apply proceed — UNLESS the change was started with the explore workflow, every open question raised in that session was resolved, and the user then explicitly instructs the agent to proceed with the proposal artifact. That instruction counts as approval: continue through design, specs, and tasks without another approval pause. This exception does not apply to apply."
 
   design:
-    - "Every major proposal element must map to a corresponding design decision."
-    - "Document functional and non-functional requirements and ensure they map to acceptance criteria in specs."
-    - "For each requirement, include testability notes and expected validation approach."
-    - 'Required sections: "Context", "Goals / Non-Goals", "Decisions", "Risks / Trade-offs", "Rollback / Mitigation", "Operational Blocking Policy", "Open Questions".'
-    - "Each decision names the proposal element it addresses. The Operational Blocking Policy covers CI (including quality gates and coverage), review, and security failures."
+    - 'Required sections: "Context", "Goals / Non-Goals", "Decisions", "Risks / Trade-offs", "Rollback / Mitigation", "Operational Blocking Policy", "Open Questions". Record only what the proposal does not already say; write "see proposal" for goals, non-goals, risks or questions it covers.'
+    - "Every major proposal element maps to a decision; each decision names the proposal element it addresses, its functional and non-functional requirements, and testability notes with the spec scenario reference."
+    - "The Operational Blocking Policy covers CI (including quality gates and coverage), review, and security failures."
 
   specs:
-    - "Acceptance criteria must be expressed as behavior scenarios (Given/When/Then or equivalent WHEN/THEN format)."
-    - "Ensure each scenario is measurable and unambiguous."
-    - "Include non-functional acceptance criteria when performance, security, reliability, or operability are affected."
-    - 'Required sections per capability: "ADDED/MODIFIED/REMOVED Requirements" with at least one scenario each.'
-    - "The Traceability block is the single home for requirement -> scenario -> task traceability."
+    - "Scenarios are measurable Given/When/Then (or WHEN/THEN); include non-functional criteria only for affected categories. The Traceability block is the single home for requirement -> scenario -> task traceability."
     - "NFAC scenarios MUST NOT duplicate scenarios already present in the functional requirements sections. If a functional scenario already covers a given access-control, error-handling, or behavioral case, the NFAC Security section MUST cross-reference that functional scenario (e.g., 'See functional scenario: <name>') instead of repeating it. Only add a distinct NFAC scenario when it expresses a genuinely new non-functional property (latency budget, audit log, token not leaked in error body, etc.)."
     - "Delta spec files inside openspec/changes/<name>/specs/<capability>/ MUST be named spec.md (not named after the capability). The directory name carries the capability identity; the file is always spec.md."
     - "When a delta spec is promoted to openspec/specs/<capability>/spec.md during archive, all relative references to design.md and tasks.md MUST be updated to point to their archived locations: ../../changes/archive/YYYY-MM-DD-<name>/design.md and ../../changes/archive/YYYY-MM-DD-<name>/tasks.md."
@@ -38,8 +27,7 @@ rules:
     - "When initializing a change manually (without the openspec-propose skill), run npm run opsx:init-change -- <change-name> [capability-name] from project root."
     - "Keep default artifact ordering from schema dependencies."
     - 'Sections: "Preparation", "Preflight", "Execution", "Pre-Commit Code Review", "Validation", "PR and Merge", "Post-Merge". Each task states how to verify it, and names its tests.md cases. Strict BDD/TDD: failing test first.'
-    - "Process lives in skills/openspec-apply-change and skills/openspec-archive-change (worktree at .worktrees/<name>, issue lifecycle, pre-commit review, PR triage loop, archive). tasks.md references them and does not restate them. All implementation happens in the change's worktree, never the primary checkout."
-    - "Run the openspec-review-code sub-agent before every commit and silently apply all clearly-correct findings; never skip."
+    - "Process lives in skills/openspec-apply-change and skills/openspec-archive-change (worktree, issue lifecycle, pre-commit review, PR triage loop, archive). tasks.md references them and does not restate them."
     - "Definition of done for apply: the PR is merged with every required CI check passing, including whatever quality gates the repo defines (tests, build, lint/static analysis, security scans, coverage). Use the repo's own docs and CI config for commands and thresholds; never name tools or numbers here. Never waive, lower, skip, or disable a check to get green; if a gate looks wrong, pause and ask the user. The change as a whole is done only after archive and cleanup finish."
     - "Open the PR with `Closes #N` for each linked issue; enable auto-merge only after review-pr reports zero findings and no thread is unresolved (never --admin); at most two fix iterations, then escalate."
     - "Post-Merge: run /opsx:archive."

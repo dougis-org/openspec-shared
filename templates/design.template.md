@@ -1,40 +1,28 @@
+Only record what the proposal does not already say; write "see proposal" for goals, non-goals, risks or questions it covers.
+
 ## Context
 
-- Relevant architecture:
-- Dependencies:
-- Interfaces/contracts touched:
+- Relevant architecture / dependencies / interfaces touched:
 
 ## Goals / Non-Goals
 
-### Goals
-
--
-
-### Non-Goals
-
--
+- Technical goals and non-goals beyond the proposal:
 
 ## Decisions
 
 ### Decision 1: <title>
 
-- Chosen:
-- Alternatives considered:
-- Rationale / trade-offs:
+- Chosen / alternatives considered / rationale and trade-offs:
 - Proposal element addressed:
-- Requirements and testability (functional / non-functional: performance, security, reliability, operability), with spec scenario reference:
+- Requirements and testability (functional / non-functional), with spec scenario reference:
 
 ## Risks / Trade-offs
 
-- Risk/trade-off:
-  - Impact:
-  - Mitigation:
+- Technical risk / impact / mitigation:
 
 ## Rollback / Mitigation
 
-- Rollback trigger and steps:
-- Data migration considerations:
-- Verification after rollback:
+- Trigger and steps / data migration / verification after rollback:
 
 ## Operational Blocking Policy
 
@@ -45,4 +33,4 @@
 
 ## Open Questions
 
--
+- Technical questions only:
