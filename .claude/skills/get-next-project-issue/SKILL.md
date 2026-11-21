@@ -40,17 +40,17 @@ If more than one folder qualifies, ask the user to pick one (label by folder nam
 
 For the selected project:
 
-1. **Read `README.md`** (roadmap, phase and wave tables, dependencies, current status markers). Read per-phase docs only for phases that are not already marked complete in the README, plus the phase of the issue you will present (for its acceptance criteria). A README-complete phase whose issues are all still CLOSED needs no further reading.
+1. **Read `README.md`** (roadmap, phase and wave tables, dependencies, current status markers). Read per-phase docs in full only for phases not marked complete in the README and for the phase of the issue you will present (for its acceptance criteria). For phases the README marks complete, do not read them in full but still collect their issue numbers with `grep -ohE "#[0-9]+|issues/[0-9]+" <phase-doc>` so reopened sub-issues are detected; if any such issue is now `OPEN`, read that phase doc in full.
 
-2. **Extract and dedupe every issue number** from what you read.
+2. **Extract and dedupe every issue number** from the README, the docs you read, and the greps above.
 
-3. **Fetch only those issues** in one GraphQL call (aliases; batch at most 100 per call), not the repository's whole issue list:
+3. **Fetch only those issues** with aliased GraphQL calls, not the repository's whole issue list. Split the numbers into chunks of at most 100, run one call per chunk (`i<N>: issue(number:<N>) { number title state }` per alias), and merge the results:
 
    ```bash
-   gh api graphql -f query='{ repository(owner:"<o>", name:"<r>") { i101: issue(number:101) { number title state labels(first:20) { nodes { name } } } i102: issue(number:102) { number title state labels(first:20) { nodes { name } } } } }'
+   gh api graphql -f query='{ repository(owner:"<o>", name:"<r>") { i101: issue(number:101) { number title state } i102: issue(number:102) { number title state } } }'
    ```
 
-   Record `number`, `title`, `state`, and label names.
+   Record `number`, `title`, and `state` for each. In-flight labels are fetched exactly in Step 5 (a per-issue label list could be truncated).
 
 4. **Fetch project board status** for the open issues, trimming output to what you need:
 
@@ -68,21 +68,27 @@ For the selected project:
 Mark an open issue `IN PROGRESS` if any signal holds:
 
 1. Its project item is in a status column matching "In Progress" or "In Review" (case-insensitive substring); primary signal when available.
-2. It carries the label `in-progress` or `in-review`.
+2. It carries the label `in-progress` or `in-review`. Fetch these exactly, so no label can be truncated:
+
+   ```bash
+   gh issue list --repo <owner>/<repo> --state open --label in-progress --limit 500 --json number --jq '[.[].number]'
+   gh issue list --repo <owner>/<repo> --state open --label in-review --limit 500 --json number --jq '[.[].number]'
+   ```
+
 3. An open PR references it:
 
    ```bash
-   gh pr list --repo <owner>/<repo> --state open --json number,headRefName,body \
-     --jq '.[] | {number, headRefName, closes: [.body | scan("(?i)(?:closes|fixes|resolves) #[0-9]+")]}'
+   gh pr list --repo <owner>/<repo> --state open --limit 200 --json number,headRefName,body \
+     --jq '.[] | {number, headRefName, closes: [.body | scan("(?i)(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s+(?:https://github\.com/[^/]+/[^/]+/issues/|[\w.-]+/[\w.-]+#|#)[0-9]+")]}'
    ```
 
-   Match by closing keyword or branch name.
+   This matches closing keywords with or without a colon, and `#N`, `owner/repo#N`, and full issue URLs. Also match by branch-name convention.
 
 If the board call failed and no label signal exists, ask the user once which open issues are in flight (comma-separated numbers, "none", or URLs).
 
 ### Step 6 — Decide whether docs need updating
 
-Compare the status markers the docs currently show with Step 4–5 reality, using the four-state emoji scheme in Guardrails. If **every marker already matches**, skip Steps 7–9 (no branch, no PR) and go straight to Step 10. Updates are idempotent.
+Compare **every** status-related element in the docs with Step 4–5 reality, not just emoji: the README `> Status:` line, the roadmap Status column, phase title and sub-issue heading markers, `Depends on:` annotations, epic Status lines, and wave/build-order strikethroughs and notes. Skip Steps 7–9 (no branch, no PR) and go to Step 10 only if **all** of them already match. Updates are idempotent.
 
 ### Step 7 — Branch and update docs
 
