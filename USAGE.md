@@ -112,7 +112,7 @@ flowchart LR
 2.  **Generate Core Artifacts**:
     Run `openspec status --change "<change-name>" --json` to read the build order, and iteratively create the following files under `openspec/changes/<change-name>/`:
 
-    *   **`proposal.md`**: Outlines *why* the change is needed, the problem space (current vs desired behavior, edge cases, assumptions), in/out scope boundaries, risks, open questions, and non-goals.
+    *   **`proposal.md`**: Outlines *why* the change is needed (with current vs desired behavior, constraints, assumptions, edge cases), in-scope and out-of-scope (non-goals) boundaries, what changes, risks, and open questions.
         *   *Change Control Note*: Include a statement that if the scope changes during implementation, all artifacts must be updated and re-approved before proceeding.
         *   *Approval*: Normally the proposal requires explicit human approval before design/specs/tasks proceed. The exception: if the change started with explore mode, every open question raised there was resolved, and the user then explicitly says to proceed with the proposal, that instruction counts as approval — continue straight through design, specs, and tasks without an extra pause.
         *   *Task Assignment*: If this is issue-driven, assign the issue to the current owner.

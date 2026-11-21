@@ -44,6 +44,8 @@ Reason for removal:
 
 ## Non-Functional Acceptance Criteria
 
+Include only for affected categories; cross-reference functional scenarios instead of repeating them.
+
 ### Requirement: Performance
 
 #### Scenario: Latency budget

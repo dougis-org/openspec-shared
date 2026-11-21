@@ -7,184 +7,62 @@ tags: [workflow, artifacts, experimental]
 
 # Propose Change
 
-Propose a new change and generate all artifacts in one step.
+Propose a new change and generate all artifacts in one step: `proposal.md` (what/why), `design.md` (how), `specs/**/*.md` (behavior scenarios), `tasks.md` (steps), `tests.md` (test cases). When ready to implement, run `/opsx:apply`.
 
-This skill creates:
-
-- `proposal.md` for what and why
-- `design.md` for how
-- `specs/**/*.md` for behavior scenarios
-- `tasks.md` for implementation steps
-- `tests.md` for test cases
-
-When ready to implement, run `/opsx:apply`.
-
-All work on this change — the proposal artifact through implementation — happens inside a dedicated git worktree, never in the primary checkout. This is what lets multiple agents work on different changes from the same repo clone at the same time.
+All work on the change happens in its dedicated git worktree, never the primary checkout, so agents can work on different changes from one clone in parallel.
 
 ## Input
 
-The user's request may include:
-
-- A kebab-case change name or a description of what they want to build
-- A GitHub issue reference: a bare number (`123`), `#N`, a full issue URL, or `OWNER/REPO#N` — in which case the issue is fetched and used as the basis for the change
+A kebab-case change name or a description of what to build, or a GitHub issue reference (bare number, `#N`, issue URL, or `OWNER/REPO#N`) whose issue is fetched and used as the basis.
 
 ## Steps
 
-1. **Detect GitHub issue reference or ask what to build**
+1. **Understand the request**
 
-   Check whether the input looks like a GitHub issue reference: a bare integer (`123`), `#N`, a URL containing `/issues/N`, or `OWNER/REPO#N`.
+   - **GitHub issue reference:** `gh issue assign <ref> --me`, then `gh issue view <ref> --json title,body,comments`. Derive the kebab-case name from the title, use title + body as the description, and record the reference for step 2.
+   - **Clear description:** use it as the basis; use a given kebab-case name or derive one (e.g. `add-user-auth`). Ask a clarifying question only if the request is ambiguous or missing key details.
+   - **No input:** use the **AskUserQuestion tool**: "What change do you want to work on? Describe what you want to build or fix." Do not proceed until the change is understood.
 
-   **If it is a GitHub issue reference:**
+2. **Collect GitHub issue references**
 
-   Assign the issue to the current user:
-   ```bash
-   gh issue assign <ref> --me
-   ```
+   If one was recorded in step 1, use it. Otherwise ask: "Is this change driven by one or more GitHub issues? Share numbers or URLs (e.g. `#42`, `myorg/repo#7`), or leave blank." Record them for the `## GitHub Issues` section of `proposal.md` so the PR closes them on merge.
 
-   Fetch the issue:
-   ```bash
-   gh issue view <ref> --json title,body,comments
-   ```
-   Use the issue title as the basis for the kebab-case change name (e.g. `add-user-auth`) and the issue title + body as the change description. Record the issue reference — it will be used in Step 2 without prompting.
+3. **Create or reuse the change's worktree**
 
-   **If the input is clear but not a GitHub issue reference:**
-
-   Treat the user's request as the basis for the change. If they already provided a kebab-case change name, use it directly. Otherwise, derive a concise kebab-case change name from their description (for example, `add-user-auth`).
-
-   Use the user's description as the basis for the change description. Do not ask a clarifying question unless the request is still ambiguous or missing key details needed to understand the change.
-
-   **If no clear input is provided:**
-
-   Use the **AskUserQuestion tool** with an open-ended prompt such as:
-
-   > What change do you want to work on? Describe what you want to build or fix.
-
-   From the description, derive a kebab-case name, for example `add-user-auth`.
-
-   **IMPORTANT:** Do not proceed until the requested change is understood.
-
-2. **Collect GitHub issue references** *(unconditional)*
-
-   If a GitHub issue reference was already detected and recorded in Step 1, skip prompting and use that reference directly.
-
-   Otherwise, always ask:
-
-   > Is this change driven by one or more GitHub issues? If so, share the issue numbers or URLs (e.g. `#42`, `myorg/repo#7`). Leave blank if not issue-driven.
-
-   Record any references provided. They will be written into the `## GitHub Issues` section of `proposal.md` so the PR can automatically close them on merge.
-
-3. **Create a dedicated worktree for this change**
-
-   From the primary checkout, check whether a worktree already exists for `<name>` (for example, started during an explore session):
-
-   ```bash
-   git worktree list
-   ```
-
-   If none exists, fetch the default branch and create one, branching from its current tip:
+   From the primary checkout, `git worktree list`. If `.worktrees/<name>` does not exist (explore may have started it):
 
    ```bash
    git fetch origin
    git worktree add ".worktrees/<name>" -b "<name>" "origin/<default-branch>"
-   ```
-
-   Immediately publish the branch so it exists on remote before any work happens on it:
-
-   ```bash
    git push -u origin "<name>"
    ```
 
-   If `.worktrees/` is not already listed in `.gitignore`, add it.
+   Add `.worktrees/` to `.gitignore` if missing, then `cd ".worktrees/<name>"`. Run every command and write every file for this change from inside it.
 
-   From this point on, run every command and write every file for this change from inside `.worktrees/<name>` — never from the primary checkout:
+4. **Create the change directory** (inside the worktree): `openspec new change "<name>"` creates `openspec/changes/<name>/` with `.openspec.yaml`.
 
-   ```bash
-   cd ".worktrees/<name>"
-   ```
+5. **Get the build order:** `openspec status --change "<name>" --json` once; note `applyRequires` and each artifact's dependencies.
 
-4. **Create the change directory**
+6. **Create artifacts in dependency order until apply-ready**
 
-   Run this from inside the worktree created in the previous step:
+   Track progress with the todo tool. For each `ready` artifact:
 
-   ```bash
-   openspec new change "<name>"
-   ```
+   - `openspec instructions <artifact-id> --change "<name>" --json`; use `context`, `rules`, `template`, `instruction`, `outputPath`, `dependencies`.
+   - Read only dependency artifacts that are not already in your context (do not re-read files you just wrote).
+   - Write the file from `template`. Treat `context` and `rules` as constraints; never copy them into the file.
+   - Verify the file exists, and show `Created <artifact-id>`.
 
-   This creates a scaffolded change at `openspec/changes/<name>/` with `.openspec.yaml`.
+   Continue until every `applyRequires` artifact is done (this includes `tests`). For `tasks.md` and `tests.md`, follow the schema instruction and rules (test-first BDD/TDD, pre-commit review, CI-equivalent validation as part of done) and reference the apply skill for process; do not restate it. If an artifact needs input because context is unclear, ask and continue.
 
-5. **Get the artifact build order**
-
-   ```bash
-   openspec status --change "<name>" --json
-   ```
-
-   Parse the JSON to get:
-
-   - `applyRequires`: artifact IDs required before implementation, for example `tasks`
-   - `artifacts`: all artifacts with status and dependencies
-
-6. **Create artifacts in sequence until apply-ready**
-
-   Use the todo tracking tool to track progress through the artifacts.
-
-   Loop through artifacts in dependency order, starting with artifacts that have no pending dependencies.
-
-   For each artifact that is `ready`:
-
-   - Get instructions:
-
-     ```bash
-     openspec instructions <artifact-id> --change "<name>" --json
-     ```
-
-   - Use the returned `context`, `rules`, `template`, `instruction`, `outputPath`, and `dependencies`
-   - Read any completed dependency files for context
-   - Create the artifact file using `template` as the structure
-   - Apply `context` and `rules` as constraints, but do not copy them into the file
-   - Show brief progress such as `Created [artifact-id]`
-
-   Continue until all entries in `applyRequires` are complete. This includes the `tests` artifact.
-
-   When creating `tasks.md` and `tests.md`, follow the schema instruction and rules (test-first BDD/TDD, pre-commit review, CI-equivalent validation as part of done). Reference the apply skill for process; do not restate it.
-
-   After creating each artifact:
-
-   - Re-run `openspec status --change "<name>" --json`
-   - Check whether every artifact ID in `applyRequires` has status `done`
-
-   If an artifact requires user input because context is unclear, ask for clarification and continue.
-
-7. **Show final status**
-
-   ```bash
-   openspec status --change "<name>"
-   ```
+7. **Final status:** `openspec status --change "<name>"`.
 
 ## Output
 
-After completing all artifacts, summarize:
-
-- Change name and location
-- The worktree the change lives in: `.worktrees/<name>`
-- Artifacts created with brief descriptions
-- Readiness status: `All artifacts created. Ready for implementation.`
-- Prompt: `Ready for implementation from .worktrees/<name> — run /opsx:apply or ask me to implement to start working on the tasks.`
-
-## Artifact Creation Guidelines
-
-- Follow the `instruction` field returned by `openspec instructions` for each artifact type
-- Follow the schema requirements for each artifact
-- Read dependency artifacts before creating a new one
-- Use `template` as the structure for the output file
-- Treat `context` and `rules` as constraints for the agent, not as file content
-- Do not copy placeholder blocks such as `context`, `rules`, or `project_context` into the artifact
+Summarize: change name and location, worktree `.worktrees/<name>`, artifacts created, `All artifacts created. Ready for implementation.`, and `Ready for implementation from .worktrees/<name> — run /opsx:apply or ask me to implement to start working on the tasks.`
 
 ## Guardrails
 
-- Create all artifacts needed for implementation as defined by `apply.requires`
-- Always read dependency artifacts before creating a new one
-- If context is critically unclear, ask the user, but prefer reasonable decisions that keep momentum
-- If a change with that name already exists, ask whether to continue it or create a new one
-- Always create or reuse the change's dedicated worktree at `.worktrees/<name>` before creating the change directory, and do all work for the change inside it — never in the primary checkout. Push the branch immediately so it exists on remote.
-- If this change arrived from an explore session that already resolved every open question and the user explicitly said to proceed with the proposal, continue straight through design, specs, and tasks without pausing for a separate human approval step. Otherwise, the proposal still requires explicit human approval before design/specs/tasks/apply proceed.
-- Verify each artifact file exists after writing before proceeding
+- Create every artifact in `apply.requires`; prefer reasonable decisions that keep momentum, and ask only if context is critically unclear.
+- If a change with that name already exists, ask whether to continue it or create a new one.
+- Always create or reuse the dedicated worktree before creating the change directory; never work in the primary checkout.
+- If this change arrived from an explore session that resolved every open question and the user explicitly said to proceed with the proposal, continue through design, specs, and tasks without a separate approval pause. Otherwise the proposal needs explicit human approval before design/specs/tasks/apply.

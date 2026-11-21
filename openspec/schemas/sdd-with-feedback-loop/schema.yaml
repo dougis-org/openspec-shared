@@ -7,13 +7,11 @@ description: >
 artifacts:
   - id: proposal
     generates: proposal.md
-    description: Change proposal capturing why, problem space, scope, and risks
+    description: Change proposal capturing why, scope, and risks
     template: proposal.md
     instruction: |
-      Document: why needed, problem space, scope (in/out), risks, open questions, non-goals.
       Include a Capabilities subsection under What Changes: list New Capabilities (durable-behavior kebab-case names, each becomes specs/<capability-path>/spec.md) and Modified Capabilities (exact existing path under openspec/specs/; only if requirement-level behavior changes). Before filling it in, research existing specs: `openspec list --specs`, then `openspec show "<spec-id>" --type spec --json --no-scenarios`, and read relevant specs in full with `openspec show "<spec-id>" --type spec`. Reuse an existing capability path instead of inventing a near-duplicate.
       Every change must declare at least one capability or set `skip_specs: true` in the change's `.openspec.yaml` (pure refactor, tooling, docs with no behavior change); `openspec validate` rejects a zero-delta change otherwise. Mark breaking changes with **BREAKING**.
-      Add change-control note: if scope changes, artifacts must be updated before implementing.
       Assign any ticket used for this proposal or exploration to the current user.
     requires: []
 
@@ -22,9 +20,7 @@ artifacts:
     description: Technical design mapping proposal elements to implementation decisions
     template: design.md
     instruction: |
-      Document technical design mapping proposal elements to decisions.
-      Document functional/non-functional requirements mapped to specs. Include testability,
-      risks, rollback plan, and operational blocking policy for CI/review failures.
+      Technical design only; see config rules for required sections and mapping.
     requires:
       - proposal
 
@@ -33,9 +29,6 @@ artifacts:
     description: Capability specifications with behavior-driven acceptance criteria
     template: spec.md
     instruction: |
-      Document capabilities affected. Express acceptance criteria as behavior scenarios (Given/When/Then).
-      Include ADDED, MODIFIED, REMOVED sections. Include non-functional criteria if affected.
-      Ensure explicit traceability from requirements to scenarios.
       Create one specs/<capability-path>/spec.md per capability in the proposal; write them one at a time and skip files that already exist.
       Format: `### Requirement: <name>` with SHALL/MUST wording and `#### Scenario: <name>` (exactly four hashtags; fewer fails silently). Every requirement needs at least one scenario. Keep each requirement description to 500 characters or fewer (`openspec validate --strict` fails otherwise); put examples and edge cases in scenarios.
       Delta operations: ADDED, MODIFIED (copy the ENTIRE existing requirement block from openspec/specs/<capability-path>/spec.md and edit it; headers must match), REMOVED (requires **Reason** and **Migration**), RENAMED (FROM:/TO:).

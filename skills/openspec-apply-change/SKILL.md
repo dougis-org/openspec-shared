@@ -36,12 +36,7 @@ Optional change name. If omitted, infer from context; auto-select if only one ac
 
 3. **Enter the change's worktree**
 
-   All implementation happens in `.worktrees/<name>`, never the primary checkout (this lets agents work on different changes in parallel).
-
-   - `git worktree list`; if `.worktrees/<name>` exists, `cd` into it.
-   - Otherwise from the primary checkout: `git fetch origin`, then `git worktree add .worktrees/<name> -b <name> origin/<default-branch>` (or `git worktree add .worktrees/<name> <name>` if the branch exists on remote), and `cd` into it.
-   - Confirm the branch is pushed; if not, `git push -u origin <feature-branch>`.
-   - Never checkout a different branch in the primary checkout.
+   All implementation happens in `.worktrees/<name>`, never the primary checkout. `cd` into it if it exists (`git worktree list`); otherwise create it as in propose step 3 (or `git worktree add .worktrees/<name> <name>` if the branch already exists on remote). Confirm the branch is pushed. Never checkout a different branch in the primary checkout.
 
 4. **Preflight**
 
