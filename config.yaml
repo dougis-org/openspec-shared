@@ -3,7 +3,7 @@ schema: sdd-with-feedback-loop
 context: |
   Flow: proposal -> design -> specs -> tasks -> tests -> apply -> archive. Keep artifacts concise and implementation-ready.
   All file/folder references are project-root-relative (e.g. openspec/changes/my-change/proposal.md).
-  All work on a change (proposal through apply and archive) happens in its dedicated git worktree `.worktrees/<change-name>`, never the primary checkout; the propose skill (step 3) creates it and pushes the branch, and `.worktrees/` must be in `.gitignore`.
+  All work on a change (proposal through apply and archive) happens in its dedicated git worktree `.worktrees/<change-name>`, never the primary checkout; the propose skill (step 3) creates it and pushes the branch, and `.worktrees/` must be ignored (via `.gitignore`, or `.git/info/exclude` until the change's PR adds it).
 
 rules:
   proposal:

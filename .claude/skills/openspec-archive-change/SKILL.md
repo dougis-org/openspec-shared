@@ -32,15 +32,15 @@ Optional change name. If omitted, infer from context; if vague or ambiguous you 
    - **Clean delta** (applies without conflict): sync without asking, and include the summary in the final output.
    - **Conflicts, or already synced:** show the combined summary and ask: `Sync now (recommended)` / `Archive without syncing` (changes needed), or `Archive now` / `Sync anyway` / `Cancel` (already synced).
 
-   To sync, use an inline subagent that applies each `openspec/changes/<name>/specs/<capability>/spec.md` to the matching main spec, given the delta summary. Then fix relative links in every promoted spec: references to `design.md` / `tasks.md` become `../../changes/archive/YYYY-MM-DD-<name>/design.md` and `.../tasks.md`. Commit these with the archive commit.
+   To sync, use an inline subagent that applies each `openspec/changes/<name>/specs/<capability>/spec.md` to the matching main spec, given the delta summary. Then fix relative links in every promoted spec: references to `design.md` / `tasks.md` become `../../changes/archive/YYYY-MM-DD-<name>/design.md` and `../../changes/archive/YYYY-MM-DD-<name>/tasks.md`. Commit these with the archive commit.
 
 6. **Archive in a single commit.**
 
    ```bash
    mkdir -p openspec/changes/archive
    mv openspec/changes/<name> openspec/changes/archive/YYYY-MM-DD-<name>
-   git add openspec/changes/archive/YYYY-MM-DD-<name> openspec/specs
-   git rm -r openspec/changes/<name>
+   git add -A openspec/changes            # stages the new archive path and the removal of the old one
+   [ -d openspec/specs ] && git add -A openspec/specs
    ```
 
    Fail with an error if the target already exists (suggest renaming or another date). The new path and the deletion MUST land in one commit, never two. `.openspec.yaml` moves with the directory.

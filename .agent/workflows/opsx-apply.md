@@ -67,19 +67,19 @@ Optional change name. If omitted, infer from context; auto-select if only one ac
 
 10. **PR triage loop** *(autonomous until merged; never wait for a human to report comments or merge; never use fixed sleeps)*
 
-    Immediately start in parallel: (a) a sub-agent running `pr-review-toolkit:review-pr`; (b) `gh pr checks <PR-URL> --required --watch --fail-fast` (returns on first failure or when all required checks finish).
+    Immediately start in parallel: (a) a sub-agent running `pr-review-toolkit:review-pr`; (b) `gh pr checks <PR-URL> --required --watch --fail-fast` (returns on first failure or when all required checks finish). Checks finishing is not the end of monitoring: after it returns, re-query threads and state; while waiting for merge or new reviews, re-check `gh pr view <PR-URL> --json state,mergeStateStatus,headRefOid` at spaced intervals (about 60 seconds), running the thread query again only when the state, head commit, or review activity changed.
 
     Each iteration, collect every signal, then fix everything in one commit:
 
     - Failing required checks: `gh pr checks <PR-URL> --required --json name,bucket,link`; for failures `gh run view <run-id> --log-failed`. Quality-gate and coverage failures are fixed in code, never waived.
-    - Unresolved review threads: `gh api graphql` on `pullRequest.reviewThreads(first:100) { pageInfo { hasNextPage endCursor } nodes { id isResolved isOutdated path comments(last:1) { nodes { body author { login } } } } }`; paginate only while `hasNextPage` is true. (`gh pr view --json` has no `reviewThreads` field.) Consider only unresolved threads.
+    - Unresolved review threads: `gh api graphql` on `pullRequest.reviewThreads(first:100) { pageInfo { hasNextPage endCursor } nodes { id isResolved isOutdated path original: comments(first:1) { nodes { body author { login } } } latest: comments(last:1) { nodes { body author { login } } } } }`; paginate only while `hasNextPage` is true. (`gh pr view --json` has no `reviewThreads` field.) Consider only unresolved threads; read the original comment and the latest reply (fetch the full thread when they differ) so the finding is not hidden by replies.
     - review-pr findings from the sub-agent.
 
     Then run local validation (step 7) and the pre-commit review (step 8; incremental), push once, reply to each addressed thread, resolve them all in one call with aliased mutations (`a:resolveReviewThread(input:{threadId:"<id1>"}){thread{isResolved}} b:resolveReviewThread(...)`), and re-run the watch.
 
     **Iterate at most twice.** After two fix-and-push cycles, the next assessment is a third review; if it still shows failing required checks, unresolved threads, or findings, stop and escalate to the user with the remaining items. Never start a fourth iteration.
 
-    When the review-pr sub-agent reports zero findings, no thread is unresolved, and required checks pass, enable auto-merge: `gh pr merge <PR-URL> --auto --merge` (never `--admin`, never force-merge). Then watch with `gh pr view <PR-URL> --json state` until `MERGED`; on `CLOSED`, notify the user and stop. If new comments or failures appear after auto-merge is enabled, re-enter the loop.
+    When the review-pr sub-agent reports zero findings, no thread is unresolved, and required checks pass, enable auto-merge: `gh pr merge <PR-URL> --auto --merge` (never `--admin`, never force-merge). Then keep watching (spaced `gh pr view <PR-URL> --json state,mergeStateStatus` checks, about 60 seconds apart) until `MERGED`; on `CLOSED`, notify the user and stop. If new comments or failures appear after auto-merge is enabled, re-enter the loop.
 
 11. **Finish**
 

@@ -25,18 +25,18 @@ This is the standalone form of the PR triage loop in `skills/openspec-apply-chan
    ```bash
    gh pr view <ref> --json number,headRefName,baseRefName,state,mergeable,mergeStateStatus
    gh pr checks <number> --required --json name,bucket,link
-   gh api graphql -f query='{ repository(owner:"<o>", name:"<r>") { pullRequest(number:<n>) { reviewThreads(first:100) { pageInfo { hasNextPage endCursor } nodes { id isResolved isOutdated path comments(last:1) { nodes { body author { login } } } } } } } }'
+   gh api graphql -f query='{ repository(owner:"<o>", name:"<r>") { pullRequest(number:<n>) { reviewThreads(first:100) { pageInfo { hasNextPage endCursor } nodes { id isResolved isOutdated path original: comments(first:1) { nodes { body author { login } } } latest: comments(last:1) { nodes { body author { login } } } } } } } }'
    ```
 
-   Paginate only while `hasNextPage` is true; consider only unresolved threads. (`gh pr view --json` has no `reviewThreads` field.)
+   Paginate only while `hasNextPage` is true; consider only unresolved threads, and read both the original comment and the latest reply (fetch the full thread when they differ) so the finding is not hidden by replies. (`gh pr view --json` has no `reviewThreads` field.)
 
-2. **Priority 1: build and tests.** Run the project's build and full test suite locally (commands from README / CLAUDE.md / AGENTS.md / CI config). Fix root causes; never silence, skip, or comment out tests. Do not start Priority 2 until both are green.
+2. **Priority 1: build and tests.** Run the project's build and full test suite locally (commands from README / CLAUDE.md / AGENTS.md / CI config). Fix root causes; never silence, skip, or comment out tests. Once both are green locally, commit and push the fix (one commit) even if there are no comments or other failures. Do not start Priority 2 until both are green.
 
 3. **Priority 2: comments.** Classify each unresolved thread. *Actionable*: implement it. *Non-issue*: reply politely with technical evidence. Validate locally, then commit and push once. Resolve every fully addressed thread in one call with aliased mutations (`a:resolveReviewThread(input:{threadId:"<id1>"}){thread{isResolved}} b:resolveReviewThread(...)`), and post replies to non-issue threads. Only resolve threads that are genuinely addressed.
 
 4. **Priority 3: remaining required checks.** Read failure logs (`gh run view <run-id> --log-failed`), fix in code (coverage, lint, complexity, security), validate locally, push in one commit. Ignore non-required checks unless the user asks. Never waive, lower, skip, or disable a check; if a gate looks wrong, ask the user.
 
-5. **Watch until merged, event-driven.** No fixed-interval polling: run `gh pr checks <number> --required --watch --fail-fast`, which returns on the first failure or when all required checks finish. On return, re-assess by priority:
+5. **Watch until merged.** Use `gh pr checks <number> --required --watch --fail-fast` for CI (it returns on the first failure or when all required checks finish). Checks finishing is not the end: after it returns, re-assess by priority, and while waiting for merge or new reviews re-check `gh pr view <number> --json state,mergeStateStatus,headRefOid` at spaced intervals (about 60 seconds), re-running the thread query only when the state, head commit, or review activity changed:
 
    | Condition | Action |
    |---|---|

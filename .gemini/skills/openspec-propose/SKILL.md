@@ -41,7 +41,7 @@ A kebab-case change name or a description of what to build, or a GitHub issue re
    git push -u origin "<name>"
    ```
 
-   Add `.worktrees/` to `.gitignore` if missing, then `cd ".worktrees/<name>"`. Run every command and write every file for this change from inside it.
+   If `.worktrees/` is not already ignored, add it to `.git/info/exclude` (local, untracked) instead of editing the primary checkout, and include a `.gitignore` entry in the change's own PR; then `cd ".worktrees/<name>"`. Run every command and write every file for this change from inside it.
 
 4. **Create the change directory** (inside the worktree): `openspec new change "<name>"` creates `openspec/changes/<name>/` with `.openspec.yaml`.
 
