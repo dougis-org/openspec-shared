@@ -1,332 +1,155 @@
 ---
 name: get-next-project-issue
-description: Find the next logical unblocked GitHub issue to work on for a tracked project. Syncs to main, discovers project docs, evaluates current issue states against GitHub, updates the docs on a branch, cuts a doc PR set to auto-merge, monitors it to completion, then presents the next issue to action.
+description: Find the next logical unblocked GitHub issue to work on for a tracked project. Syncs to main, discovers project docs, evaluates current issue states against GitHub, updates the docs on a branch only if statuses changed, cuts a doc PR set to auto-merge, monitors it to completion, then presents the next issue to action.
 license: MIT
 metadata:
   author: ai-agent-setup
-  version: "1.1"
+  version: "1.2"
 ---
 
 # Get Next Project Issue
 
-Discover and surface the next logical, unblocked GitHub issue to work on across
-any project tracked in the `docs/` folder. Along the way, keep the project docs
-fresh by updating them to reflect current GitHub issue status and committing
-those updates through a PR.
-
----
+Surface the next logical, unblocked GitHub issue to work on across any project tracked in `docs/`. Along the way, keep the project docs fresh by updating status markers and merging those updates through a PR (only when something actually changed).
 
 ## Steps
 
 ### Step 1 — Sync to main
-
-Switch to `main` and pull the latest from remote so you are working from a
-clean, up-to-date baseline:
 
 ```bash
 git checkout main
 git pull --rebase
 ```
 
-If there are local uncommitted changes, warn the user and ask whether to stash
-them before continuing. Do not proceed with a dirty working tree.
-
----
+If the working tree is dirty, warn the user and ask whether to stash. Do not proceed with a dirty tree.
 
 ### Step 2 — Discover project doc folders
 
-Scan the `docs/` directory (recursively) to find folders that look like tracked
-project roadmaps. A folder qualifies if it contains a `README.md` that mentions
-GitHub issue numbers (pattern: `#\d+` or `github.com/.*/issues/\d+`).
-
-Run the scan efficiently using a single command, for example:
+A folder qualifies if it contains a `README.md` mentioning GitHub issue numbers (`#\d+` or `github.com/.*/issues/\d+`):
 
 ```bash
 find docs/ -name "README.md" -print0 | xargs -0 grep -E -l "issues/|#[0-9]+" 2>/dev/null
 ```
 
-`-print0` / `-0` handles directory or file names containing spaces correctly.
-The `-E` pattern matches both full GitHub issue URLs (`issues/123`) and
-shorthand references (`#123`).
+Include `docs/projects/`-style nesting. Collect every qualifying folder.
 
-Also check one level up for a potential `docs/projects/` grouping pattern in
-case projects are nested under an intermediate parent directory.
+### Step 3 — Select a project
 
-Collect every qualifying folder path.
-
----
-
-### Step 3 — Ask the user to select a project
-
-Present the list of discovered project folders to the user and ask them to
-select one. Use whatever mechanism the agent runtime provides for interactive
-selection (e.g., a tool call, a numbered list in a message, or a follow-up
-prompt). Wait for the user's response before proceeding.
-
-- Label each option by its folder name (and the title from its `README.md` if
-  easy to extract, e.g. the first `# Heading`).
-- Include an option for "All / scan all projects" if more than one exists.
-- Wait for the user's selection before proceeding.
-
----
+If more than one folder qualifies, ask the user to pick one (label by folder name and the README's first `# Heading`; include "All projects"). With exactly one, use it and say so. Wait for the answer before continuing.
 
 ### Step 4 — Evaluate current project state
 
-For the selected project folder:
+For the selected project:
 
-1. **Read all markdown files** in that folder (README + per-phase / per-section
-   docs) to build a complete picture of the project structure, phases,
-   sub-issues, dependencies, and any status already captured in the docs.
+1. **Read `README.md`** (roadmap, phase and wave tables, dependencies, current status markers). Read per-phase docs only for phases that are not already marked complete in the README, plus the phase of the issue you will present (for its acceptance criteria). A README-complete phase whose issues are all still CLOSED needs no further reading.
 
-2. **Extract every GitHub issue number** referenced across all those files.
-   Deduplicate the list.
+2. **Extract and dedupe every issue number** from what you read.
 
-3. **Fetch the current state of every issue** from GitHub in a single API
-   call, then filter locally to the issue numbers extracted from the docs:
+3. **Fetch only those issues** in one GraphQL call (aliases; batch at most 100 per call), not the repository's whole issue list:
 
    ```bash
-   gh issue list --repo <owner>/<repo> --limit 1000 \
-     --json number,title,state,labels
+   gh api graphql -f query='{ repository(owner:"<o>", name:"<r>") { i101: issue(number:101) { number title state labels(first:20) { nodes { name } } } i102: issue(number:102) { number title state labels(first:20) { nodes { name } } } } }'
    ```
 
-   Filter the returned JSON to only the numbers extracted in step 2.
-   Record `number`, `title`, `state` (`OPEN` / `CLOSED`), and `labels` for each.
-   Using a single list call avoids the rate-limiting and process-spawn
-   overhead that comes from running one `gh issue view` per issue.
+   Record `number`, `title`, `state`, and label names.
 
-4. **Fetch project item status for every open issue** from the GitHub Projects
-   board. First discover the project number:
+4. **Fetch project board status** for the open issues, trimming output to what you need:
 
    ```bash
-   gh project list --owner <owner> --format json
+   gh project list --owner <owner> --format json --jq '.projects[] | {number,title}'
+   gh project item-list <project-number> --owner <owner> --format json --jq '.items[] | {n:.content.number, status}'
    ```
 
-   Then fetch all items with their current status column value:
+   If this fails (no `project` scope or no project), note it and continue; in-flight detection falls back to labels and open PRs.
+
+5. **Phase status:** all sub-issues CLOSED → complete; mixed → in progress; all OPEN → not started. Note issues whose dependencies (per the docs) are now all CLOSED.
+
+### Step 5 — Detect in-flight work
+
+Mark an open issue `IN PROGRESS` if any signal holds:
+
+1. Its project item is in a status column matching "In Progress" or "In Review" (case-insensitive substring); primary signal when available.
+2. It carries the label `in-progress` or `in-review`.
+3. An open PR references it:
 
    ```bash
-   gh project item-list <project-number> --owner <owner> --format json
+   gh pr list --repo <owner>/<repo> --state open --json number,headRefName,body \
+     --jq '.[] | {number, headRefName, closes: [.body | scan("(?i)(?:closes|fixes|resolves) #[0-9]+")]}'
    ```
 
-   Record the status column value for each item (match on `content.number`
-   to correlate with issue numbers). If this call fails (e.g., token lacks
-   `project` scope or no project exists), note the failure and continue —
-   in-progress detection will fall back to labels and open-PR signals only.
+   Match by closing keyword or branch name.
 
-5. **Determine completion status** for each phase / section:
-   - All sub-issues CLOSED → phase complete
-   - Some CLOSED, some OPEN → phase in progress
-   - All OPEN → phase not started
-   - Note any issue whose dependencies (as described in the docs) are now fully
-     met (i.e., all blocking predecessors are CLOSED).
+If the board call failed and no label signal exists, ask the user once which open issues are in flight (comma-separated numbers, "none", or URLs).
 
----
+### Step 6 — Decide whether docs need updating
 
-### Step 5 — Detect in-flight work automatically
+Compare the status markers the docs currently show with Step 4–5 reality, using the four-state emoji scheme in Guardrails. If **every marker already matches**, skip Steps 7–9 (no branch, no PR) and go straight to Step 10. Updates are idempotent.
 
-Mark an open issue as `IN PROGRESS` if **any** of the following signals is true:
-
-1. **GitHub Projects board** (from Step 4): the issue's project item is in a
-   status column whose name semantically matches "In Progress" or "In Review"
-   (case-insensitive substring match). This is the primary signal when project
-   data is available.
-
-2. **Issue labels**: the issue carries the label `in-progress` or `in-review`
-   (from the `labels` field fetched in Step 4). This provides a redundant
-   signal visible on the issue list even without the project board.
-
-3. **Open PR**: check whether an open PR exists that references the issue:
-
-   ```bash
-   gh pr list --repo <owner>/<repo> --state open \
-     --json number,title,headRefName,body 2>/dev/null
-   ```
-
-   Match PRs to issues by body text (`Closes #N`, `Fixes #N`) or branch name
-   conventions. Mark any matched issue as `IN PROGRESS`.
-
-If the `gh project item-list` call from Step 4 failed and no label signal is
-present, fall back to asking the user manually:
-
-> Are any of the open issues currently being worked on (e.g., on a feature
-> branch or open PR)? If yes, which issue numbers?
-
-Accept a free-text response (comma-separated numbers, "none", or issue URLs)
-and mark each reported issue as `IN PROGRESS`.
-
----
-
-### Step 6 — Create a documentation update branch
-
-Create and switch to a new branch named:
-
-```
-doc/status-update-<project-folder>-<YYYY-MM-DD>
-```
-
-For example: `doc/status-update-multi-user-campaigns-2026-06-07`
+### Step 7 — Branch and update docs
 
 ```bash
 git checkout -b doc/status-update-<project-folder>-$(date +%Y-%m-%d)
 ```
 
----
+Never edit on `main`. Then update only status-related content:
 
-### Step 7 — Update project documents
+- **README.md:** the `> Status:` line (today's date, short in-progress summary); a **Status** column in the phase roadmap table (✅ `**Complete**`, 🔄 `**N/M done**`, 🟡 `Not started`, 🚧 `**In progress**`); every issue number a clickable GitHub link; in the wave/build-order table, strike through completed waves with `~~text~~` and update notes on what is done and unblocked next.
+- **Per-phase docs:** append `✅ COMPLETE` to the phase title when the epic and all sub-issues are closed (`(partially complete)` / `(in progress)` otherwise); prefix each sub-issue heading with ✅ (append `— CLOSED`), 🚧 (append `— IN PROGRESS`), or 🟡 (append `— OPEN`); annotate **Depends on:** lines with what is now met (e.g. "✅ Phase 1 complete"); show `— CLOSED ✅` or `— OPEN` on the epic tracking blockquote with a **Status:** summary line.
 
-Apply the following documentation update pattern consistently across all project docs:
+Do not alter design content, diagrams, acceptance criteria, or any non-status wording.
 
-**README.md updates:**
-- Update the `> Status:` header line with today's date and an accurate
-  in-progress summary (e.g., "Phase 1 ✅ complete · Phase 2 🔄 in progress").
-- In the phase roadmap table, add or refresh a **Status** column:
-  - ✅ `**Complete**` — all sub-issues CLOSED
-  - 🔄 `**N/M done**` — some CLOSED
-  - 🟡 `Not started` — all OPEN
-  - 🚧 `**In progress**` — has an open PR
-- Ensure every issue number in the table is a clickable GitHub link.
-- Update the wave / build-order table: strike through completed waves with
-  `~~text~~`; update notes to reflect what's done and what's unblocked next.
+### Step 8 — Commit and open the doc PR
 
-**Per-phase / per-section doc updates:**
-- Update the phase title to append `✅ COMPLETE` when the epic + all
-  sub-issues are closed.
-- Append `(partially complete)` or `(in progress)` when partially done.
-- Update each sub-issue heading to prepend:
-  - `✅` and append `— CLOSED` for closed issues
-  - `🚧` and append `— IN PROGRESS` for issues with an open PR
-  - `🟡` and append `— OPEN` for untouched open issues
-- Update **Depends on:** lines to annotate which dependencies are now met
-  (e.g., "✅ Phase 1 complete").
-- Update the epic tracking blockquote to show `— CLOSED ✅` or `— OPEN` and
-  add a **Status:** line summarising the phase's current state.
-
-Do not alter any design content, diagrams, acceptance criteria, or wording
-that is not status-related. Preserve all existing prose and structure.
-
----
-
-### Step 8 — Commit and open a documentation PR
-
-Commit all changed doc files with a clear message:
-
-```
-docs(<project-folder>): update status to reflect closed issues
-
-- <Phase N> fully complete: #<epic> + all sub-issues (#X–#Y) closed
-- <Phase M> partial: <done items> closed; <open items> still open
-- ...
-- All GitHub issue links verified and present
-```
-
-Push the branch and open a PR:
+Commit with a message like `docs(<project-folder>): update status to reflect closed issues` plus one bullet per phase change. Push, then:
 
 ```bash
-gh pr create \
+gh pr create --base main --label documentation \
   --title "docs(<project>): sync status with GitHub issue states (<date>)" \
-  --body "Automated documentation status sync.
-
-Updates issue status markers (✅/🔄/🟡), refreshes the Status column in the
-phase roadmap table, and updates per-phase doc headings to reflect current
-GitHub issue states.
-
-All changes are doc-only (no code)." \
-  --base main \
-  --label documentation
-```
-
-After the PR is created, enable auto-merge with squash via a separate command:
-
-```bash
+  --body "Doc-only status sync: updates status markers, the roadmap Status column, and phase headings to match current GitHub issue states."
 gh pr merge <pr-number> --auto --squash
 ```
 
-If auto-merge cannot be enabled (e.g., the repository's branch protection
-requires a human review before merge is allowed), note this to the user and
-proceed to Step 9 — the PR will merge once approved.
+If auto-merge cannot be enabled (e.g. branch protection needs a human review), tell the user and continue; the PR merges once approved.
 
----
+### Step 9 — Drive the PR to merge
 
-### Step 9 — Monitor the PR to merge
+Invoke the **pr-reviewer** skill with the PR number. It is event-driven (`gh pr checks --watch`) and capped at two fix iterations; do not add a separate poll loop here.
 
-Invoke the **pr-reviewer** skill on the newly created PR.
+- Merged → Step 10.
+- Blocked on a required human review → tell the user and continue to Step 10 (the docs merge when approved).
+- Failing checks unrelated to docs → note and continue.
 
-Pass it the PR number or URL. The pr-reviewer skill will:
-- Analyse any failing checks
-- Resolve comment threads
-- Ensure the PR reaches a mergeable state
+### Step 10 — Present the next issue
 
-Poll the PR state every 30 seconds (up to 10 minutes) until it is merged or
-requires human intervention:
+From the Step 4 evaluation and Step 5 in-flight data:
 
-```bash
-gh pr view <number> --repo <owner>/<repo> --json state,mergeStateStatus
-```
+1. Keep issues that are `OPEN` and not `IN PROGRESS`.
+2. Keep those whose dependencies (per the docs) are all `CLOSED`.
+3. Prefer the earliest incomplete phase; within a phase, issues with no remaining sub-dependencies over those that block others; issues flagged `(next up)` in the docs.
+4. If several tie, present all (they can run in parallel).
 
-- If merged → proceed to Step 10.
-- If blocked on a required review → inform the user and proceed to Step 10
-  anyway (the docs will merge when approved).
-- If failed checks are non-doc-related → note and proceed.
-
----
-
-### Step 10 — Present the next issue to work on
-
-Using the evaluation from Step 4 (and in-flight context from Step 5), identify
-the **next most logical unblocked issue**:
-
-**Selection algorithm:**
-
-1. Filter to issues that are `OPEN` and **not** `IN PROGRESS`.
-2. Filter to issues whose dependencies (as described in the docs) are fully
-   met — i.e., every issue they depend on is `CLOSED`.
-3. Among unblocked issues, prefer:
-   - Issues in the **earliest incomplete phase** (lower phase number first)
-   - Within a phase, prefer issues with no remaining sub-dependencies over
-     those that block others
-   - Issues explicitly flagged `(next up)` in the docs
-4. If multiple issues tie, present all of them (they can run in parallel).
-
-**Output format:**
+If nothing is unblocked, present the **bottleneck issue**: the one whose completion unblocks the most downstream work, and why it is the critical path.
 
 ```
 ## 🎯 Next Issue to Work On
 
 **Issue:** [#NNN — Title](https://github.com/<owner>/<repo>/issues/NNN)
 **Phase:** Phase N — <phase name>
-**Why unblocked:** <brief explanation of which dependencies are satisfied>
+**Why unblocked:** <which dependencies are satisfied>
 
 ### Acceptance criteria (from the docs)
-<paste the acceptance criteria block from the phase doc>
+<acceptance criteria block from the phase doc>
 
 ### To start working on this:
-- Use `/opsx-explore #NNN` to explore the problem space
-- Use `/opsx-propose` to create a change proposal
+- `/opsx-explore #NNN` to explore the problem space
+- `/opsx-propose` to create a change proposal
 - Or assign and branch directly: `gh issue assign NNN --me && git checkout -b feat/...`
 ```
 
-If multiple issues are equally unblocked and can run in parallel, list them all
-with a note that they can be worked concurrently.
-
-If no issue is unblocked (everything open is blocked on incomplete work),
-present the **bottleneck issue** — the single issue whose completion would
-unblock the most downstream work — and explain why it's the critical path item.
-
----
-
 ## Guardrails
 
-- **Never commit code changes** — this skill touches only doc files.
-- **Never rewrite design content** — only update status markers and links.
-- **Always confirm the branch is created before editing files** — do not edit
-  on `main`.
-- **Do not auto-merge if the PR has failing code checks** — report and let the
-  user decide.
-- **Respect in-flight work** — do not recommend an issue already assigned or
-  with an open PR unless it's the only unblocked option.
-- **Keep status emoji consistent** — use exactly four states and no others:
-  - ✅ — all sub-issues CLOSED (phase/item complete)
-  - 🔄 — mix of CLOSED and OPEN sub-issues (partial progress, no open PR)
-  - 🚧 — an open PR exists for this issue (actively being worked)
-  - 🟡 — all sub-issues OPEN, no PR (not yet started)
-- **Idempotent updates** — if a status marker already matches reality (e.g.
-  already shows ✅ and the issue is CLOSED), leave it unchanged.
+- Touch only doc files; never commit code. Never rewrite design content; only status markers and links.
+- Confirm the doc branch exists before editing; never edit on `main`.
+- Do not auto-merge a PR with failing code checks; report and let the user decide.
+- Respect in-flight work: do not recommend an issue already assigned or with an open PR unless it is the only unblocked option.
+- Use exactly four status emoji: ✅ all sub-issues CLOSED; 🔄 mix of CLOSED and OPEN, no open PR; 🚧 an open PR exists; 🟡 all OPEN, no PR.
+- Idempotent: if a marker already matches reality, leave it unchanged.
